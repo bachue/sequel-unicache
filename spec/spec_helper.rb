@@ -1,7 +1,4 @@
 require 'bundler'
-require 'erb'
-require 'logger'
-require 'yaml'
 
 begin
   ENV['BUNDLE_GEMFILE'] = File.expand_path('../Gemfile', __dir__)
@@ -11,8 +8,12 @@ rescue Bundler::GemNotFound
         'Did you run `bundle install`?'
 end
 
+require 'erb'
+require 'logger'
+require 'yaml'
+
 require 'sequel/unicache'
-require 'active_support/all'
+require 'active_support/core_ext/hash/keys'
 require 'dalli'
 require 'pry'
 
@@ -34,8 +35,53 @@ module Helpers
                   "Copy from spec/memcache.yml.example then modify base on it will be recommended."
     end
   end
+
+  def initialize_models
+    model = Class.new Sequel::Model
+    model.set_dataset database[:users]
+    Object.send :const_set, :User, model
+  end
+
+  def clear_models
+    Object.send :remove_const, :User
+  end
+
+  def database
+    @database ||= begin
+      db = Sequel.sqlite
+      db.run <<-SQL
+        CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT,
+                           username VARCHAR NOT NULL, password VARCHAR,
+                           company_name VARCHAR NOT NULL, department VARCHAR NOT NULL,
+                           employee_id INTEGER NOT NULL);
+      SQL
+      db[:users].insert username: 'bachue@gmail.com', password: 'bachue',
+                        company_name: 'EMC', department: 'Mozy', employee_id: 12345
+      db
+    end
+  end
+
+  def reset_database
+    return unless @database
+    remove_instance_variable :@database
+  end
+
+  def reset_global_configuration
+    Sequel::Unicache.instance_variable_set :@opts, {}
+  end
 end
 
 RSpec.configure do |config|
   config.include Helpers
+
+  config.before :each do
+    memcache.flush_all
+    initialize_models
+  end
+
+  config.after :each do
+    reset_database
+    clear_models
+    reset_global_configuration
+  end
 end

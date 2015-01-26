@@ -1,31 +1,31 @@
-require 'forwardable'
+require "sequel/unicache/global_configuration"
 
 module Sequel
   module Unicache
-    class Configuration
-      def initialize opts = {}
-        @opts = opts
-      end
-
-      def set_all opts
-        @opts.merge! opts
-      end
-
-      %i(cache ttl serialize deserialize key enabled logger).each do |attr|
-        define_method(attr) { @opts[attr] }
-        define_method("#{attr}=") { |val| @opts[attr] = val }
-      end
+    class Configuration < GlobalConfiguration
+      define_method(:if) { @opts[:if] }
+      define_method(:if=) { |val| @opts[:if] = val }
 
       module ClassMethods
-        attr_reader :config
-
-        def self.extended base
-          base.instance_exec { @config = Configuration.new }
+        # Configure for specfied model
+        def unicache *key, opts
+          _initialize_unicache unless @unicache_configuration # Initialize first
+          key = key.size == 1 ? key.first : key.sort
+          @unicache_configuration[key] = Configuration.new Sequel::Unicache.config.to_h.merge opts
         end
 
-        def configure opts
-          @config.set_all opts
+        # Read configuration for specified model
+        def unicache_for *key
+          _initialize_unicache unless @unicache_configuration # Initialize first
+          key = key.size == 1 ? key.first : key.sort
+          @unicache_configuration[key]
         end
+
+        def _initialize_unicache
+          @unicache_configuration = { primary_key => Configuration.new(Sequel::Unicache.config.to_h) }
+        end
+
+        private :_initialize_unicache
       end
     end
   end

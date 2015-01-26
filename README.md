@@ -50,7 +50,7 @@ For example, cache User object:
 
 ```ruby
 class User < Sequel::Model
-  # by default primary key is always unique cache key
+  # by default primary key is always unique cache key, all settings will just follow global configuration
   unicache :username,                                               # username will also be an unique key (username should has unique index in database)
            if: {|user, opts| !user.deleted? }                       # don't cache it if model is deleted
            ttl: 30                                                  # Specify the cache expiration time (unit: second), will overwrite the default configuration
@@ -60,7 +60,7 @@ class User < Sequel::Model
            key: {|user| "users/#{user.id}" }                        # Cache key generation method, will overwrite the global configuration
            logger: Logger.new(STDERR)                               # Object for log, will overwrite the global configuration
 
-  # TODO: unicache :company_name, employee_id                       # company_name, employee_id have combined unique index
+  # TODO: unicache :company_name, :department, :employee_id         # company_name, department, employee_id have combined unique index
 end
 ```
 
@@ -100,9 +100,11 @@ Unicache won't expire cache until you update or delete a model and commit the tr
 
 ## Notice
 
-* You must use unicache as the document mentioned then cache can work.
+* You must call Sequel APIs as the document mentioned then cache can work.
 
-* You don't have to enable it during the testing or development.
+* You must set primary key before you call any Unicache DSL if you need.
+
+* You don't have to enable Unicache during the testing or development.
 
 * If someone update database directly or by another project without unicache, then cache in memcache won't be expired automatically.
   You must manipulate cache manually or by another mechanism.
