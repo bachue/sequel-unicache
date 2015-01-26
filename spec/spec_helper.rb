@@ -63,7 +63,7 @@ module Helpers
 
   def reset_database
     return unless @database
-    remove_instance_variable :@database
+    @database = nil
   end
 
   def reset_global_configuration

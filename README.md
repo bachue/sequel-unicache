@@ -88,9 +88,9 @@ User.expire_unicache_key 1
 You can enable or disable cache during initialization, or temporarily disable cache in a block on runtime:
 
 ```ruby
-User.enable_unicache
-User.disable_unicache
-User.unicache_enabled?
+User.enable_unicache_for :id
+User.disable_unicache_for :id
+User.unicache_enabled_for? :id
 User.without_unicache do
   User[1] # query database directly
 end

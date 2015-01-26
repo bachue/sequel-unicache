@@ -41,4 +41,16 @@ describe Sequel::Unicache::Configuration do
     expect(User.unicache_for(:department, :employee_id, :company_name).serialize).to be serialize_proc
     expect(User.unicache_for(:company_name, :employee_id, :department).deserialize).to be deserialize_proc
   end
+
+  it 'can enable & disable unicache' do
+    expect(User.unicache_for(:id).enabled).to be true
+    User.disable_unicache_for :id
+    expect(User.unicache_enabled_for?(:id)).to be false
+    User.enable_unicache_for :id
+    expect(User.unicache_enabled_for?(:id)).to be true
+    User.without_unicache do
+      expect(User.unicache_enabled_for?(:id)).to be false
+    end
+    expect(User.unicache_enabled_for?(:id)).to be true
+  end
 end
