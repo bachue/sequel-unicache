@@ -30,4 +30,5 @@ Read-Through: Queries by ID or any specified unique key, like `User[params[:id]]
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'sqlite3'
   spec.add_development_dependency 'msgpack'
+  spec.add_development_dependency 'activesupport'
 end

@@ -1,0 +1,8 @@
+servers:
+    - host: localhost
+      port: 11211
+options:
+    namespace: sequel
+    compress: true
+    threadsafe: true
+    failover: true

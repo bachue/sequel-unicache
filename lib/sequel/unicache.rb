@@ -1,7 +1,8 @@
 require "sequel/unicache/version"
+require "sequel/unicache/configuration"
 
 module Sequel
   module Unicache
-    # Your code goes here...
+    extend Configuration::ClassMethods
   end
 end

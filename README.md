@@ -31,13 +31,17 @@ Or install it yourself as:
 You must configure Unicache during initialization, for Rails, create a file in config/initializers and copy the code into it will be acceptable.
 
 ```ruby
-Unicache.configure cache: Dalli::Client.new('localhost:11211'),            # Required, object to manipulate memcache, only Dalli is well supported for now
+Sequel::Unicache.configure cache: Dalli::Client.new('localhost:11211'),            # Required, object to manipulate memcache, only Dalli is well supported for now
                    ttl: 60,                                                # Expiration time, by default it's 0, means won't expire
                    serialize: {|model, opts| Marshal.dump(model) },        # Serialization method, by default it's Marshal (fast, Ruby native-supported, non-portable)
                    deserialize: {|cache, opts| Marshal.load(cache) },      # Deserialization method
                    key: {|model, opts| "#{model.class.name}/{model.id}" }, # Cache key generation method
                    enabled: true,                                          # Enabled on all Sequel::Model subclasses by default
                    logger: Logger.new(STDOUT)                              # Logger, needed when debug
+
+# Read & write global configuration by key:
+Sequel::Unicache.config.ttl # 60
+Sequel::Unicache.config.ttl = 20
 ```
 
 ## Usage
