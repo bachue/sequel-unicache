@@ -13,22 +13,29 @@ module Sequel
         # Configure for specfied model
         def unicache *args
           opts = args.last.is_a?(Hash) ? args.pop : {}
-          Utils.initialize_unicache self unless @unicache_configuration # Initialize first
-          key = Utils.normalize_key_for_unicache args
-          config = Unicache.config.to_h.merge opts
-          config.merge! model_class: self, unicache_keys: key
-          @unicache_configuration[key] = Configuration.new config
+          Utils.initialize_unicache_for_class self unless @unicache_class_configuration # Initialize class first
+          if args.empty? # class-level configuration
+            config = Unicache.config.to_h.merge opts
+            @unicache_class_configuration = Configuration.new config.merge model_class: self
+          else           # key-level configuration
+            Utils.initialize_unicache_for_key self unless @unicache_key_configurations # Initialize key
+            key = Utils.normalize_key_for_unicache args
+            config = Unicache.config.to_h.merge @unicache_class_configuration.to_h.merge(opts)
+            config.merge! unicache_keys: key
+            @unicache_key_configurations[key] = Configuration.new config
+          end
         end
 
       public
         # Read configuration for specified model
         def unicache_for *key, fuzzy: false
-          Utils.initialize_unicache self unless @unicache_configuration # Initialize first
+          Utils.initialize_unicache_for_class self unless @unicache_class_configuration # Initialize class first
+          Utils.initialize_unicache_for_key self unless @unicache_key_configurations # Initialize key
           if fuzzy
-            config = Utils.fuzzy_search_for key, @unicache_configuration
+            config = Utils.fuzzy_search_for key, @unicache_key_configurations
           else
             key = Utils.normalize_key_for_unicache key
-            config = @unicache_configuration[key]
+            config = @unicache_key_configurations[key]
           end
           raise "Must specify cache store for unicache #{key.inspect} of #{name}" if config && !config.cache
           config
@@ -49,10 +56,10 @@ module Sequel
         end
 
         def without_unicache
-          @disable_unicache = true
+          origin, @disable_unicache = @disable_unicache, true
           yield
         ensure
-          @disable_unicache = false
+          @disable_unicache = origin
         end
 
         class Utils
@@ -78,12 +85,19 @@ module Sequel
           # end
 
           class << self
-            def initialize_unicache model_class
-              config = Unicache.config.to_h.merge model_class: model_class, unicache_keys: model_class.primary_key
+            def initialize_unicache_for_class model_class
               model_class.instance_exec do
-                @unicache_configuration = { primary_key => Configuration.new(config) }
+                class_config = Unicache.config.to_h.merge model_class: model_class
+                @unicache_class_configuration = Configuration.new class_config
               end
               Hook.install_hooks_for_unicache
+            end
+
+            def initialize_unicache_for_key model_class
+              model_class.instance_exec do
+                pk_config = @unicache_class_configuration.to_h.merge unicache_keys: model_class.primary_key
+                @unicache_key_configurations = { primary_key => Configuration.new(pk_config) }
+              end
             end
 
             def normalize_key_for_unicache keys

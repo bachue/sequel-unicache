@@ -33,18 +33,22 @@ Or install it yourself as:
 You must configure Unicache during initialization, for Rails, create a file in config/initializers and copy the code into it will be acceptable.
 
 ```ruby
-Sequel::Unicache.configure cache: Dalli::Client.new('localhost:11211'),            # Required, object to manipulate memcache, only Dalli is well supported for now
-                   ttl: 60,                                                        # Expiration time, by default it's 0, means won't expire
-                   serialize: {|values, opts| Marshal.dump(values) },              # Serialization method, by default it's Marshal (fast, Ruby native-supported, non-portable)
-                   deserialize: {|cache, opts| Marshal.load(cache) },              # Deserialization method
+Sequel::Unicache.configure cache: Dalli::Client.new('localhost:11211'),       # Required, object to manipulate memcache,
+                                                                              # only Dalli is well supported for now
+                   ttl: 60,                                                   # Expiration time, by default it's 0, means won't expire
+                   serialize: {|values, opts| Marshal.dump(values) },         # Serialization method,
+                                                                              # by default it's Marshal (fast, Ruby native-supported, non-portable)
+                   deserialize: {|cache, opts| Marshal.load(cache) },         # Deserialization method
                    key: {|hash, opts| "#{opts.model_class.name}/{hash[:id]}" },    # Cache key generation method
-                   enabled: true,                                                  # Enabled on all Sequel::Model subclasses by default
-                   logger: Logger.new(STDOUT)                                      # Logger, needed when debug
+                   enabled: true,                                             # Enabled on all Sequel::Model subclasses by default
+                   logger: Logger.new(STDOUT)                                 # Logger, needed when debug
 
 # Read & write global configuration by key:
 Sequel::Unicache.config.ttl # 60
 Sequel::Unicache.config.ttl = 20
 ```
+
+Unicache configuration has 3 levels, global-level, configuration-level and key-level, which is the most flexible.
 
 ## Usage
 
@@ -52,17 +56,21 @@ For example, cache User object:
 
 ```ruby
 class User < Sequel::Model
-  # by default primary key is always unique cache key, all settings will just follow global configuration
-  unicache :username,                                               # username will also be an unique key (username should has unique index in database)
-           if: {|user, opts| !user.deleted? }                       # don't cache it if model is deleted
+  # class level configuration, for all unicache keys of the model
+  unicache if: {|user, opts| !user.deleted? }                       # don't cache it if model is deleted
            ttl: 30                                                  # Specify the cache expiration time (unit: second), will overwrite the default configuration
            cache: Dalli::Client.new('localhost:11211')              # Memcache store, will overwrite the default configuration
            serialize: {|values, opts| values.to_msgpack }           # Serialization method, will overwrite the global configuration
            deserialize: {|cache, opts| MessagePack.unpack(cache) }  # Deserialization method, will overwrite the global configuration
-           key: {|hash, opts| "users/#{hash[:username]}" }          # Cache key generation method, will overwrite the global configuration
+           key: {|hash, opts| "users/#{hash[:id]}" }                # Cache key generation method, will overwrite the global configuration
            logger: Logger.new(STDERR)                               # Object for log, will overwrite the global configuration
 
-  # TODO: unicache :company_name, :department, :employee_id         # company_name, department, employee_id have combined unique index
+  # by default primary key is always unique cache key, all settings will just follow global configuration and class configuration
+  # key level configuration for username
+  unicache :username,                                               # username will also be an unique key (username should has unique index in database)
+           ttl: 60                                                  # will override the global and class configuration
+
+  unicache :company_name, :department, :employee_id                 # company_name, department, employee_id have combined unique index
 end
 ```
 
@@ -117,6 +125,8 @@ If you reload a model, cache will also be updated.
 * You must call Sequel APIs as the document mentioned then cache can work.
 
 * You must set primary key before you call any Unicache DSL if you need.
+
+* If you want to configure both class-level and key-level for a model, configure class-level first.
 
 * If someone update database by SQL directly (even Sequel APIs like `User.insert` or `User.db.[]` won't be supported) or by another project without unicache, then cache in memcache won't be updated automatically.
   You must manipulate cache manually or by another mechanism.
