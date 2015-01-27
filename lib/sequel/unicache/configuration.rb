@@ -9,12 +9,12 @@ module Sequel
       end
 
       module ClassMethods
-        # Configure for specfied model
       private
+        # Configure for specfied model
         def unicache *args
           opts = args.last.is_a?(Hash) ? args.pop : {}
-          _initialize_unicache unless @unicache_configuration # Initialize first
-          key = _normalize_key_for_unicache args
+          Utils.initialize_unicache self unless @unicache_configuration # Initialize first
+          key = Utils.normalize_key_for_unicache args
           config = Unicache.config.to_h.merge opts
           config.merge! model_class: self, unicache_keys: key
           @unicache_configuration[key] = Configuration.new config
@@ -23,8 +23,8 @@ module Sequel
       public
         # Read configuration for specified model
         def unicache_for *key
-          _initialize_unicache unless @unicache_configuration # Initialize first
-          key = _normalize_key_for_unicache key
+          Utils.initialize_unicache self unless @unicache_configuration # Initialize first
+          key = Utils.normalize_key_for_unicache key
           config = @unicache_configuration[key]
           raise "Must specify cache store for unicache #{key.inspect} of #{name}" if config && !config.cache
           config
@@ -49,37 +49,41 @@ module Sequel
           @disable_unicache = false
         end
 
-      private
+        class Utils
+          # Concept design
+          # def _serialize_for_unicache *key, model
+          #   config = unicache_for(*key)
+          #   proc = config.serialize || ->(model, _) { Marshal.dump model }
+          #   proc.(model, config)
+          # end
 
-        # Concept design
-        # def _serialize_for_unicache *key, model
-        #   config = unicache_for(*key)
-        #   proc = config.serialize || ->(model, _) { Marshal.dump model }
-        #   proc.(model, config)
-        # end
+          # def _deserialize_for_unicache *key, cache
+          #   config = unicache_for(*key)
+          #   proc = config.deserialize || ->(model, _) { Marshal.load cache }
+          #   proc.(model, config)
+          # end
 
-        # def _deserialize_for_unicache *key, cache
-        #   config = unicache_for(*key)
-        #   proc = config.deserialize || ->(model, _) { Marshal.load cache }
-        #   proc.(model, config)
-        # end
+          # def _generate_key_for_unicache *key, model
+          #   config = unicache_for(*key)
+          #   proc = config.key ||
+          #            ->(hash, _) { hash.keys.sort.map {|attr| [attr, hash[attr].to_s] }.flatten.split(':') }
+          #   hash = Array(config.unicache_keys).sort.inject({}) {|res, attr| res.merge attr => model[attr] }
+          #   proc.(hash, config)
+          # end
 
-        # def _generate_key_for_unicache *key, model
-        #   config = unicache_for(*key)
-        #   proc = config.key ||
-        #            ->(hash, _) { hash.keys.sort.map {|attr| [attr, hash[attr].to_s] }.flatten.split(':') }
-        #   hash = Array(config.unicache_keys).sort.inject({}) {|res, attr| res.merge attr => model[attr] }
-        #   proc.(hash, config)
-        # end
+          class << self
+            def initialize_unicache model_class
+              config = Unicache.config.to_h.merge model_class: model_class, unicache_keys: model_class.primary_key
+              model_class.instance_exec do
+                @unicache_configuration = { primary_key => Configuration.new(config) }
+              end
+              Hook.install_hooks_for_unicache
+            end
 
-        def _initialize_unicache
-          config = Unicache.config.to_h.merge model_class: self, unicache_keys: primary_key
-          @unicache_configuration = { primary_key => Configuration.new(config) }
-          # _install_hooks_for_unicache
-        end
-
-        def _normalize_key_for_unicache keys
-          keys.size == 1 ? keys.first.to_sym : keys.sort.map(&:to_sym)
+            def normalize_key_for_unicache keys
+              keys.size == 1 ? keys.first.to_sym : keys.sort.map(&:to_sym)
+            end
+          end
         end
       end
     end

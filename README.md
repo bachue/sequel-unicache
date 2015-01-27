@@ -110,13 +110,15 @@ Sequel::Unicache.enabled?
 
 Unicache won't write-through cache until you create, update or delete a model and commit the transaction successfully.
 
+If you reload a model, cache will also be updated.
+
 ## Notice
 
 * You must call Sequel APIs as the document mentioned then cache can work.
 
 * You must set primary key before you call any Unicache DSL if you need.
 
-* If someone update database directly or by another project without unicache, then cache in memcache won't be updated automatically.
+* If someone update database by SQL directly (even Sequel APIs like `User.insert` or `User.db.[]` won't be supported) or by another project without unicache, then cache in memcache won't be updated automatically.
   You must manipulate cache manually or by another mechanism.
 
 ## Contributing
