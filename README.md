@@ -1,8 +1,10 @@
 # Sequel Unicache
 
-Read through caching library inspired by Cache Money, support Sequel 4
+Read through, Write through caching library inspired by Cache Money, support Sequel 4
 
-Read-Through: Queries by ID or any specified unique key, like `User[params[:id]]` or `User[username: 'bachue@gmail.com']`, will first look in memcache store and then look in the database for the results of that query. If there is a cache miss, it will populate the cache. As objects are created, updated, and deleted, all of the caches are automatically expired.
+Read-Through: Queries by ID or any specified unique key, like `User[params[:id]]` or `User[username: 'bachue@gmail.com']`, will first look in memcache store and then look in the database for the results of that query. If there is a cache miss, it will populate the cache.
+
+Write-Through: As objects are created, updated, and deleted, all of the caches are automatically kept up-to-date and coherent.
 
 ## Dependency
 
@@ -33,7 +35,7 @@ You must configure Unicache during initialization, for Rails, create a file in c
 ```ruby
 Sequel::Unicache.configure cache: Dalli::Client.new('localhost:11211'),            # Required, object to manipulate memcache, only Dalli is well supported for now
                    ttl: 60,                                                        # Expiration time, by default it's 0, means won't expire
-                   serialize: {|model, opts| Marshal.dump(model) },                # Serialization method, by default it's Marshal (fast, Ruby native-supported, non-portable)
+                   serialize: {|values, opts| Marshal.dump(values) },              # Serialization method, by default it's Marshal (fast, Ruby native-supported, non-portable)
                    deserialize: {|cache, opts| Marshal.load(cache) },              # Deserialization method
                    key: {|hash, opts| "#{opts.model_class.name}/{hash[:id]}" },    # Cache key generation method
                    enabled: true,                                                  # Enabled on all Sequel::Model subclasses by default
@@ -55,7 +57,7 @@ class User < Sequel::Model
            if: {|user, opts| !user.deleted? }                       # don't cache it if model is deleted
            ttl: 30                                                  # Specify the cache expiration time (unit: second), will overwrite the default configuration
            cache: Dalli::Client.new('localhost:11211')              # Memcache store, will overwrite the default configuration
-           serialize: {|user, opts| user.to_msgpack }               # Serialization method, will overwrite the global configuration
+           serialize: {|values, opts| values.to_msgpack }           # Serialization method, will overwrite the global configuration
            deserialize: {|cache, opts| MessagePack.unpack(cache) }  # Deserialization method, will overwrite the global configuration
            key: {|hash, opts| "users/#{hash[:username]}" }          # Cache key generation method, will overwrite the global configuration
            logger: Logger.new(STDERR)                               # Object for log, will overwrite the global configuration
@@ -81,7 +83,9 @@ Cache key and expiration:
 
 ```ruby
 User[1].unicache_key
+User[1].unicache_key only: [:id]
 User[1].expire_unicache_key
+User[1].expire_unicache_key except: [:id]
 User.expire_unicache_key 1
 ```
 
@@ -96,7 +100,7 @@ User.without_unicache do
 end
 ```
 
-Unicache won't expire cache until you update or delete a model and commit the transaction successfully.
+Unicache won't write-through cache until you create, update or delete a model and commit the transaction successfully.
 
 ## Notice
 
@@ -104,9 +108,9 @@ Unicache won't expire cache until you update or delete a model and commit the tr
 
 * You must set primary key before you call any Unicache DSL if you need.
 
-* You don't have to enable Unicache during the testing or development.
+* You're not supposed to enable Unicache during the testing or development.
 
-* If someone update database directly or by another project without unicache, then cache in memcache won't be expired automatically.
+* If someone update database directly or by another project without unicache, then cache in memcache won't be updated automatically.
   You must manipulate cache manually or by another mechanism.
 
 ## Contributing

@@ -11,9 +11,10 @@ module Sequel
       module ClassMethods
         # Configure for specfied model
       private
-        def unicache *key, opts
+        def unicache *args
+          opts = args.last.is_a?(Hash) ? args.pop : {}
           _initialize_unicache unless @unicache_configuration # Initialize first
-          key = _normalize_key_for_unicache key
+          key = _normalize_key_for_unicache args
           config = Sequel::Unicache.config.to_h.merge opts
           config.merge! model_class: self, unicache_keys: key
           @unicache_configuration[key] = Configuration.new config
@@ -24,7 +25,9 @@ module Sequel
         def unicache_for *key
           _initialize_unicache unless @unicache_configuration # Initialize first
           key = _normalize_key_for_unicache key
-          @unicache_configuration[key]
+          config = @unicache_configuration[key]
+          raise "Must specify cache store for unicache #{key.inspect} of #{name}" if config && !config.cache
+          config
         end
 
         def enable_unicache_for *key

@@ -2,7 +2,7 @@ module Sequel
   module Unicache
     class GlobalConfiguration
       def initialize opts = {}
-        @opts = opts
+        @opts = default_config.merge opts
       end
 
       def set_all opts
@@ -16,6 +16,14 @@ module Sequel
       %i(cache ttl serialize deserialize key enabled logger).each do |attr|
         define_method(attr) { @opts[attr] }
         define_method("#{attr}=") { |val| @opts[attr] = val }
+      end
+
+    private
+
+      def default_config
+        { serialize: ->(values, _) { Marshal.dump values },
+          deserialize: ->(cache, _) { Marshal.load cache },
+          key: ->(hash, _) { hash.keys.sort.map {|key| [key, hash[key].to_s] }.flatten.split(':') } }
       end
 
       module ClassMethods

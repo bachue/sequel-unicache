@@ -67,7 +67,7 @@ module Helpers
   end
 
   def reset_global_configuration
-    Sequel::Unicache.instance_variable_set :@opts, {}
+    Sequel::Unicache.config.instance_variable_set :@opts, {}
   end
 end
 
