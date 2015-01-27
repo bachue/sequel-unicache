@@ -100,6 +100,14 @@ User.without_unicache do
 end
 ```
 
+You're not supposed to enable Unicache during the testing or development. These methods can help to enable or disable all Unicache features.
+
+```ruby
+Sequel::Unicache.enable
+Sequel::Unicache.disable
+Sequel::Unicache.enabled?
+```
+
 Unicache won't write-through cache until you create, update or delete a model and commit the transaction successfully.
 
 ## Notice
@@ -107,8 +115,6 @@ Unicache won't write-through cache until you create, update or delete a model an
 * You must call Sequel APIs as the document mentioned then cache can work.
 
 * You must set primary key before you call any Unicache DSL if you need.
-
-* You're not supposed to enable Unicache during the testing or development.
 
 * If someone update database directly or by another project without unicache, then cache in memcache won't be updated automatically.
   You must manipulate cache manually or by another mechanism.

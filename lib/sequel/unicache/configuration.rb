@@ -15,7 +15,7 @@ module Sequel
           opts = args.last.is_a?(Hash) ? args.pop : {}
           _initialize_unicache unless @unicache_configuration # Initialize first
           key = _normalize_key_for_unicache args
-          config = Sequel::Unicache.config.to_h.merge opts
+          config = Unicache.config.to_h.merge opts
           config.merge! model_class: self, unicache_keys: key
           @unicache_configuration[key] = Configuration.new config
         end
@@ -39,14 +39,14 @@ module Sequel
         end
 
         def unicache_enabled_for? *key
-          !@disable_unicache && unicache_for(*key).enabled
+          !@disable_unicache && Unicache.enabled? && unicache_for(*key).enabled
         end
 
         def without_unicache
           @disable_unicache = true
           yield
         ensure
-          @disable_unicache = nil
+          @disable_unicache = false
         end
 
       private
@@ -73,8 +73,9 @@ module Sequel
         # end
 
         def _initialize_unicache
-          config = Sequel::Unicache.config.to_h.merge model_class: self, unicache_keys: primary_key
+          config = Unicache.config.to_h.merge model_class: self, unicache_keys: primary_key
           @unicache_configuration = { primary_key => Configuration.new(config) }
+          # _install_hooks_for_unicache
         end
 
         def _normalize_key_for_unicache keys

@@ -36,6 +36,18 @@ module Sequel
         def configure opts
           @config.set_all opts
         end
+
+        def enable
+          @disabled = false
+        end
+
+        def disable
+          @disabled = true
+        end
+
+        def enabled?
+          !@disabled
+        end
       end
     end
   end

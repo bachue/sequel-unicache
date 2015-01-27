@@ -52,7 +52,7 @@ describe Sequel::Unicache::Configuration do
     expect(User.unicache_for(:company_name, :department, :employee_id).unicache_keys).to eq [:company_name, :department, :employee_id]
   end
 
-  it 'can enable & disable unicache' do
+  it 'can enable & disable any unicache key' do
     expect(User.unicache_for(:id).enabled).to be true
     User.disable_unicache_for :id
     expect(User.unicache_enabled_for?(:id)).to be false
@@ -61,6 +61,16 @@ describe Sequel::Unicache::Configuration do
     User.without_unicache do
       expect(User.unicache_enabled_for?(:id)).to be false
     end
+    expect(User.unicache_enabled_for?(:id)).to be true
+  end
+
+  it 'can enable & disable unicache feature' do
+    expect(User.unicache_enabled_for?(:id)).to be true
+    Sequel::Unicache.disable
+    expect(Sequel::Unicache.enabled?).to be false
+    expect(User.unicache_enabled_for?(:id)).to be false
+    Sequel::Unicache.enable
+    expect(Sequel::Unicache.enabled?).to be true
     expect(User.unicache_enabled_for?(:id)).to be true
   end
 
