@@ -43,7 +43,9 @@ module Sequel
         end
 
         def unicache_enabled_for? *key
-          !@disable_unicache && Unicache.enabled? && unicache_for(*key).enabled
+          result = !@disable_unicache && Unicache.enabled?
+          result &&= key.first.is_a?(Configuration) ? key.first.enabled : unicache_for(*key).enabled
+          result
         end
 
         def without_unicache

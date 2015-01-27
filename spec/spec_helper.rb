@@ -10,6 +10,7 @@ end
 
 require 'erb'
 require 'logger'
+require 'json'
 require 'yaml'
 
 require 'sequel/unicache'
@@ -53,7 +54,7 @@ module Helpers
         CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT,
                            username VARCHAR NOT NULL, password VARCHAR,
                            company_name VARCHAR NOT NULL, department VARCHAR NOT NULL,
-                           employee_id INTEGER NOT NULL);
+                           employee_id INTEGER NOT NULL, created_at DEFAULT CURRENT_TIMESTAMP);
       SQL
       db[:users].insert username: 'bachue@gmail.com', password: 'bachue',
                         company_name: 'EMC', department: 'Mozy', employee_id: 12345

@@ -8,8 +8,8 @@ module Sequel
             # assign this job to parent class, which will call first_where to do that
             super
           else
-            if unicache_enabled_for? primary_key # primary key is always unicache keys, no needs to check
-              config = unicache_for primary_key
+            config = unicache_for primary_key # primary key is always unicache keys, no needs to fuzzy search
+            if unicache_enabled_for? config
               key = config.key.({primary_key => pk})
               cache = config.cache.get key
               if cache
