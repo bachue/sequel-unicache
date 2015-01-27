@@ -32,12 +32,12 @@ You must configure Unicache during initialization, for Rails, create a file in c
 
 ```ruby
 Sequel::Unicache.configure cache: Dalli::Client.new('localhost:11211'),            # Required, object to manipulate memcache, only Dalli is well supported for now
-                   ttl: 60,                                                # Expiration time, by default it's 0, means won't expire
-                   serialize: {|model, opts| Marshal.dump(model) },        # Serialization method, by default it's Marshal (fast, Ruby native-supported, non-portable)
-                   deserialize: {|cache, opts| Marshal.load(cache) },      # Deserialization method
-                   key: {|model, opts| "#{model.class.name}/{model.id}" }, # Cache key generation method
-                   enabled: true,                                          # Enabled on all Sequel::Model subclasses by default
-                   logger: Logger.new(STDOUT)                              # Logger, needed when debug
+                   ttl: 60,                                                        # Expiration time, by default it's 0, means won't expire
+                   serialize: {|model, opts| Marshal.dump(model) },                # Serialization method, by default it's Marshal (fast, Ruby native-supported, non-portable)
+                   deserialize: {|cache, opts| Marshal.load(cache) },              # Deserialization method
+                   key: {|hash, opts| "#{opts.model_class.name}/{hash[:id]}" },    # Cache key generation method
+                   enabled: true,                                                  # Enabled on all Sequel::Model subclasses by default
+                   logger: Logger.new(STDOUT)                                      # Logger, needed when debug
 
 # Read & write global configuration by key:
 Sequel::Unicache.config.ttl # 60
@@ -57,7 +57,7 @@ class User < Sequel::Model
            cache: Dalli::Client.new('localhost:11211')              # Memcache store, will overwrite the default configuration
            serialize: {|user, opts| user.to_msgpack }               # Serialization method, will overwrite the global configuration
            deserialize: {|cache, opts| MessagePack.unpack(cache) }  # Deserialization method, will overwrite the global configuration
-           key: {|user| "users/#{user.id}" }                        # Cache key generation method, will overwrite the global configuration
+           key: {|hash, opts| "users/#{hash[:username]}" }          # Cache key generation method, will overwrite the global configuration
            logger: Logger.new(STDERR)                               # Object for log, will overwrite the global configuration
 
   # TODO: unicache :company_name, :department, :employee_id         # company_name, department, employee_id have combined unique index

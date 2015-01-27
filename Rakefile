@@ -1,5 +1,6 @@
 require "bundler/gem_tasks"
 
+desc 'Run all test cases'
 task :test do
   root = File.expand_path __dir__
   specs = Dir["#{root}/spec/*_spec.rb"]
