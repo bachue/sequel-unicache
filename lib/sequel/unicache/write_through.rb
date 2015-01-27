@@ -3,6 +3,7 @@ module Sequel
     class WriteThrough
       class << self
         def write model
+
         end
       end
     end

@@ -22,10 +22,14 @@ module Sequel
 
       public
         # Read configuration for specified model
-        def unicache_for *key
+        def unicache_for *key, fuzzy: false
           Utils.initialize_unicache self unless @unicache_configuration # Initialize first
-          key = Utils.normalize_key_for_unicache key
-          config = @unicache_configuration[key]
+          if fuzzy
+            config = Utils.fuzzy_search_for key, @unicache_configuration
+          else
+            key = Utils.normalize_key_for_unicache key
+            config = @unicache_configuration[key]
+          end
           raise "Must specify cache store for unicache #{key.inspect} of #{name}" if config && !config.cache
           config
         end
@@ -82,6 +86,19 @@ module Sequel
 
             def normalize_key_for_unicache keys
               keys.size == 1 ? keys.first.to_sym : keys.sort.map(&:to_sym)
+            end
+
+            # fuzzy search will always search for enabled config
+            def fuzzy_search_for keys, configs
+              _, result = configs.detect do |cache_key, config|
+                            match = if cache_key.is_a? Array
+                                      cache_key & keys == cache_key
+                                    else
+                                      keys.include? cache_key
+                                    end
+                            match & config.enabled
+                          end
+              result
             end
           end
         end

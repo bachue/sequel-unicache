@@ -74,6 +74,16 @@ describe Sequel::Unicache::Configuration do
     expect(User.unicache_enabled_for?(:id)).to be true
   end
 
+  it 'can fuzzy search for unicache keys' do
+    User.instance_exec { unicache :department, :employee_id, :company_name }
+    expect(User.unicache_for(:id, :department)).to be_nil
+    expect(User.unicache_for(:id, :department, fuzzy: true)).to be User.unicache_for(:id)
+    expect(User.unicache_for(:id, :department, :employee_id, :company_name, fuzzy: true)).to be User.unicache_for(:id)
+    User.disable_unicache_for(:id)
+    expect(User.unicache_for(:id, :department, fuzzy: true)).to be_nil
+    expect(User.unicache_for(:id, :department, :employee_id, :company_name, fuzzy: true)).to be User.unicache_for(:department, :employee_id, :company_name)
+  end
+
   it 'should warn if no cache store specified for any unicache key' do
     reset_global_configuration
     Sequel::Unicache.configure enabled: true, ttl: 120
@@ -81,9 +91,7 @@ describe Sequel::Unicache::Configuration do
     message = 'Must specify cache store for unicache :id of User'
     expect { User.unicache_for(:id) }.to raise_error
 
-    User.instance_exec {
-      unicache :department, :employee_id, :company_name
-    }
+    User.instance_exec { unicache :department, :employee_id, :company_name }
     message = 'Must specify cache store for unicache [:company_name, :department, :employee_id] of User'
     expect { User.unicache_for(:company_name, :department, :employee_id) }.to raise_error message
   end
