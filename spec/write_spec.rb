@@ -125,13 +125,53 @@ describe Sequel::Unicache::Write do
       expect(YAML.load(cache)).to eq user.values
     end
 
-    it 'should not update cache until transaction is permitted'
+    it 'should not update cache until transaction is permitted' do
+      user = nil
+      User.db.transaction auto_savepoint: :always do
+        user = User.first.set_all(company_name: 'VMware', employee_id: 12346, created_at: Time.now).save
+        cache = memcache.get("id:#{user.id}")
+        expect(cache).to be_nil
+      end
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).not_to be_nil
+      expect(Marshal.load(cache)).to eq user.values
+    end
 
-    it 'won\'t update cache if unicache is not enabled for this key'
+    it 'won\'t update cache if unicache is not enabled for this key' do
+      User.instance_exec { unicache :username, enabled: false }
+      user = User.first.set_all(company_name: 'VMware', employee_id: 12346, created_at: Time.now).save
 
-    it 'won\'t update cache if unicache is not enabled'
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).not_to be_nil
+      expect(Marshal.load(cache)).to eq user.values
 
-    it 'won\'t update cache if condition is not permitted'
+      cache = memcache.get("username:bachue@gmail.com")
+      expect(cache).to be_nil
+    end
+
+    it 'won\'t update cache if unicache is not enabled' do
+      User.instance_exec { unicache :username, enabled: false }
+      Sequel::Unicache.disable
+      user = User.first.set_all(company_name: 'VMware', employee_id: 12346, created_at: Time.now).save
+
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).to be_nil
+
+      cache = memcache.get("username:bachue@gmail.com")
+      expect(cache).to be_nil
+    end
+
+    it 'won\'t update cache if condition is not permitted' do
+      User.instance_exec { unicache :username, if: ->(model, _) { model.company_name == 'EMC' } }
+      user = User.first.set_all(company_name: 'VMware', employee_id: 12346, created_at: Time.now).save
+
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).not_to be_nil
+      expect(Marshal.load(cache)).to eq user.values
+
+      cache = memcache.get("username:bachue@gmail.com")
+      expect(cache).to be_nil
+    end
 
     it 'will expire cache if condition is not permitted'
   end
