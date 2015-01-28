@@ -10,12 +10,12 @@ describe Sequel::Unicache::GlobalConfiguration do
 
     Sequel::Unicache.configure cache: memcache,
                                ttl: 30,
-                               enabled: true,
                                logger: logger
 
     expect(Sequel::Unicache.config.cache).to be memcache
     expect(Sequel::Unicache.config.ttl).to be 30
     expect(Sequel::Unicache.config.enabled).to be true
+    expect(Sequel::Unicache.config.write_through).to be true
     expect(Sequel::Unicache.config.logger).to be logger
 
     serialize_proc = ->(model, opts) { Marshal.dump model }
@@ -25,10 +25,12 @@ describe Sequel::Unicache::GlobalConfiguration do
     Sequel::Unicache.config.serialize = serialize_proc
     Sequel::Unicache.config.deserialize = deserialize_proc
     Sequel::Unicache.config.key = key_proc
+    Sequel::Unicache.config.write_through = false
 
     expect(Sequel::Unicache.config.serialize).to be serialize_proc
     expect(Sequel::Unicache.config.deserialize).to be deserialize_proc
     expect(Sequel::Unicache.config.key).to be key_proc
+    expect(Sequel::Unicache.config.write_through).to be false
 
     expect(Sequel::Unicache.config.to_h).to eq cache: memcache,
                                                ttl: 30,
@@ -36,6 +38,7 @@ describe Sequel::Unicache::GlobalConfiguration do
                                                logger: logger,
                                                serialize: serialize_proc,
                                                deserialize: deserialize_proc,
-                                               key: key_proc
+                                               key: key_proc,
+                                               write_through: false
   end
 end

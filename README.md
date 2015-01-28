@@ -57,13 +57,14 @@ For example, cache User object:
 ```ruby
 class User < Sequel::Model
   # class level configuration, for all unicache keys of the model
-  unicache if: {|user, opts| !user.deleted? }                       # don't cache it if model is deleted
-           ttl: 30                                                  # Specify the cache expiration time (unit: second), will overwrite the default configuration
-           cache: Dalli::Client.new('localhost:11211')              # Memcache store, will overwrite the default configuration
-           serialize: {|values, opts| values.to_msgpack }           # Serialization method, will overwrite the global configuration
-           deserialize: {|cache, opts| MessagePack.unpack(cache) }  # Deserialization method, will overwrite the global configuration
-           key: {|hash, opts| "users/#{hash[:id]}" }                # Cache key generation method, will overwrite the global configuration
-           logger: Logger.new(STDERR)                               # Object for log, will overwrite the global configuration
+  unicache if: {|user, opts| !user.deleted? },                      # don't cache it if model is deleted
+           ttl: 30,                                                 # Specify the cache expiration time (unit: second), will overwrite the default configuration
+           cache: Dalli::Client.new('localhost:11211'),             # Memcache store, will overwrite the default configuration
+           serialize: {|values, opts| values.to_msgpack },          # Serialization method, will overwrite the global configuration
+           deserialize: {|cache, opts| MessagePack.unpack(cache) }, # Deserialization method, will overwrite the global configuration
+           key: {|hash, opts| "users/#{hash[:id]}" },               # Cache key generation method, will overwrite the global configuration
+           logger: Logger.new(STDERR),                              # Object for log, will overwrite the global configuration
+           write_through: false                                     # Disable write through, by default it's enabled
 
   # by default primary key is always unique cache key, all settings will just follow global configuration and class configuration
   # key level configuration for username

@@ -13,7 +13,7 @@ module Sequel
         @opts
       end
 
-      %i(cache ttl serialize deserialize key enabled logger).each do |attr|
+      %i(cache ttl serialize deserialize key enabled logger write_through).each do |attr|
         define_method(attr) { @opts[attr] }
         define_method("#{attr}=") { |val| @opts[attr] = val }
       end
@@ -23,7 +23,9 @@ module Sequel
       def default_config
         { serialize: ->(values, _) { Marshal.dump values },
           deserialize: ->(cache, _) { Marshal.load cache },
-          key: ->(hash, _) { hash.keys.sort.map {|key| [key, hash[key].to_s] }.flatten.join(':') } }
+          key: ->(hash, _) { hash.keys.sort.map {|key| [key, hash[key].to_s] }.flatten.join(':') },
+          write_through: true,
+          enabled: true }
       end
 
       module ClassMethods
