@@ -1,9 +1,7 @@
 module Sequel
   module Unicache
     class Expire
-      class << self
-        def expire model
-        end
+      module ClassMethods # Provide class methods for Sequel::Model, to expire cache
       end
     end
   end

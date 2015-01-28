@@ -1,4 +1,4 @@
-require 'sequel/unicache/write_through'
+require 'sequel/unicache/write'
 require 'sequel/unicache/expire'
 
 module Sequel
@@ -13,12 +13,12 @@ module Sequel
       module InstanceMethods
         def after_commit
           super
-          WriteThrough.write self
+          Write.write self
         end
 
         def after_destroy_commit
           super
-          Expire.expire self
+          Write.expire self
         end
       end
     end

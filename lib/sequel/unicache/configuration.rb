@@ -69,27 +69,6 @@ module Sequel
         end
 
         class Utils
-          # Concept design
-          # def _serialize_for_unicache *key, model
-          #   config = unicache_for(*key)
-          #   proc = config.serialize || ->(model, _) { Marshal.dump model }
-          #   proc.(model, config)
-          # end
-
-          # def _deserialize_for_unicache *key, cache
-          #   config = unicache_for(*key)
-          #   proc = config.deserialize || ->(model, _) { Marshal.load cache }
-          #   proc.(model, config)
-          # end
-
-          # def _generate_key_for_unicache *key, model
-          #   config = unicache_for(*key)
-          #   proc = config.key ||
-          #            ->(hash, _) { hash.keys.sort.map {|attr| [attr, hash[attr].to_s] }.flatten.split(':') }
-          #   hash = Array(config.unicache_keys).sort.inject({}) {|res, attr| res.merge attr => model[attr] }
-          #   proc.(hash, config)
-          # end
-
           class << self
             def initialize_unicache_for_class model_class
               model_class.instance_exec do
