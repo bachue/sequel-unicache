@@ -85,5 +85,27 @@ describe Sequel::Unicache::WriteThrough do
     expect(Marshal.load(cache)).to eq user.values
   end
 
-  it 'can write through for all unicache keys'
+  it 'can write through for all unicache keys' do
+    User.instance_exec { unicache :username, serialize: ->(values, _) { values.to_yaml } }
+    user = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
+                       company_name: 'EMC', department: 'Mozy', employee_id: 23456
+    cache = memcache.get("id:#{user.id}")
+    expect(cache).not_to be_nil
+    expect(Marshal.load(cache)).to eq user.values
+
+    cache = memcache.get("username:bachue@emc.mozy.com")
+    expect(cache).not_to be_nil
+    expect(YAML.load(cache)).to eq user.values
+  end
+
+  it 'can still cache even key will be very long' do
+    User.instance_exec { unicache :username }
+    username = 'bachue' * 1000 + '@emc.mozy.com'
+    user = User.create username: username, password: 'bachue',
+                       company_name: 'EMC', department: 'Mozy', employee_id: 23456
+
+    cache = memcache.get("username:#{username}")
+    expect(cache).not_to be_nil
+    expect(Marshal.load(cache)).to eq user.values
+  end
 end
