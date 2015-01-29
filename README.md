@@ -109,6 +109,8 @@ User.without_unicache do
 end
 ```
 
+But during cache is disabled, updating model won't write through or expire cache, then cache will be dirty. Please avoid to do that.
+
 You're not supposed to enable Unicache during the testing or development. These methods can help to enable or disable all Unicache features.
 
 ```ruby

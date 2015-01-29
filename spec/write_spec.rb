@@ -6,7 +6,7 @@ describe Sequel::Unicache::Write do
   end
 
   context 'create' do
-    it 'can write through cache into memcache after create a model' do
+    it 'should write through cache into memcache' do
       user = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
                          company_name: 'EMC', department: 'Mozy', employee_id: 23456
       cache = memcache.get("id:#{user.id}")
@@ -14,7 +14,7 @@ describe Sequel::Unicache::Write do
       expect(Marshal.load(cache)).to eq user.values
     end
 
-    it 'can serialize model into specified format' do
+    it 'should serialize model into specified format' do
       User.instance_exec { unicache :id, serialize: ->(values, _) { values.to_json } }
       user = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
                          company_name: 'EMC', department: 'Mozy', employee_id: 23456
@@ -23,7 +23,7 @@ describe Sequel::Unicache::Write do
       expect(JSON.load(cache).symbolize_keys).to eq user.values
     end
 
-    it 'won\'t write through cache if unicache is not enabled for this key' do
+    it 'should not write through cache if unicache is not enabled for this key' do
       User.instance_exec { unicache :id, enabled: false }
       user = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
                          company_name: 'EMC', department: 'Mozy', employee_id: 23456
@@ -31,7 +31,7 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
 
-    it 'won\'t write through cache if unicache is not enabled' do
+    it 'should not write through cache if unicache is not enabled' do
       User.instance_exec { unicache :id, enabled: true }
       user = User.without_unicache do
                User.create username: 'bachue@emc.mozy.com', password: 'bachue',
@@ -47,7 +47,7 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
 
-    it 'won\'t write through cache if condition is not permitted' do
+    it 'should not write through cache if condition is not permitted' do
       User.instance_exec { unicache :id, if: ->(model, _) { model.company_name == 'EMC' } }
       user1 = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
                           company_name: 'EMC', department: 'Mozy', employee_id: 23456
@@ -62,7 +62,7 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
 
-    it 'can set expiration time as you wish' do
+    it 'should set expiration time as you wish' do
       User.instance_exec { unicache :id, ttl: 1 }
       user = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
                          company_name: 'EMC', department: 'Mozy', employee_id: 23456
@@ -73,7 +73,7 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
 
-    it 'won\'t write through cache until the transaction is committed' do
+    it 'should not write through cache until the transaction is committed' do
       user = nil
       User.db.transaction auto_savepoint: :always do
         user = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
@@ -86,7 +86,7 @@ describe Sequel::Unicache::Write do
       expect(Marshal.load(cache)).to eq user.values
     end
 
-    it 'can write through for all unicache keys' do
+    it 'should write through for all unicache keys' do
       User.instance_exec { unicache :username, serialize: ->(values, _) { values.to_yaml } }
       user = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
                          company_name: 'EMC', department: 'Mozy', employee_id: 23456
@@ -99,7 +99,7 @@ describe Sequel::Unicache::Write do
       expect(YAML.load(cache)).to eq user.values
     end
 
-    it 'can still cache even key will be very long' do
+    it 'should work even if the key is very long' do
       User.instance_exec { unicache :username }
       username = 'bachue' * 1000 + '@emc.mozy.com'
       user = User.create username: username, password: 'bachue',
@@ -137,7 +137,7 @@ describe Sequel::Unicache::Write do
       expect(Marshal.load(cache)).to eq user.values
     end
 
-    it 'won\'t update cache if unicache is not enabled for this key' do
+    it 'should not update cache if unicache is not enabled for this key' do
       User.instance_exec { unicache :username, enabled: false }
       user = User.first.set_all(company_name: 'VMware', employee_id: 12346, created_at: Time.now).save
 
@@ -149,7 +149,7 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
 
-    it 'won\'t update cache if unicache is not enabled' do
+    it 'should not update cache if unicache is not enabled' do
       User.instance_exec { unicache :username, enabled: false }
       Sequel::Unicache.disable
       user = User.first.set_all(company_name: 'VMware', employee_id: 12346, created_at: Time.now).save
@@ -161,7 +161,7 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
 
-    it 'won\'t update cache if condition is not permitted' do
+    it 'should not update cache if condition is not permitted' do
       User.instance_exec { unicache :username, if: ->(model, _) { model.company_name == 'EMC' } }
       user = User.first.set_all(company_name: 'VMware', employee_id: 12346, created_at: Time.now).save
 
@@ -173,10 +173,36 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
 
-    it 'will expire cache if condition is not permitted'
+    it 'should expire cache if condition is not permitted' do
+      User.instance_exec { unicache :id, if: ->(model, _) { model.company_name == 'EMC' } }
+      user = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
+                         company_name: 'EMC', department: 'Mozy', employee_id: 23456
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).not_to be_nil
+
+      user.set_all(company_name: 'VMware').save
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).to be_nil
+    end
+
+    it 'should always expire cache if write through is disabled' do
+      User.instance_exec { unicache :id, if: ->(model, _) { model.company_name == 'EMC' } }
+      user = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
+                         company_name: 'EMC', department: 'Mozy', employee_id: 23456
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).not_to be_nil
+
+      User.unicache_for(:id).write_through = false
+      user.set_all(company_name: 'VMware').save
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).to be_nil
+    end
   end
 
-  context 'disable write through' do
-    it 'will always expire cache if write through is disabled'
+  context 'delete' do
+    it 'should expire cache'
+    it 'should not expire cache until transaction is permitted'
+    it 'should still expire cache even if unicache is not enabled for that key'
+    it 'should not expire cache if unicache is not enabled'
   end
 end
