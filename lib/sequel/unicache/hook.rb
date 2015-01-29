@@ -12,13 +12,25 @@ module Sequel
 
       module InstanceMethods
         def after_commit
-          super
           Write.expire self
+          @_unicache_previous_values = nil
+          super
+        end
+
+        def after_rollback
+          @_unicache_previous_values = nil
+          super
         end
 
         def after_destroy_commit
-          super
           Write.expire self
+          super
+        end
+
+        def before_update
+          # Store all previous values, to be expired
+          @_unicache_previous_values = initial_values.merge(@_unicache_previous_values || {})
+          super
         end
       end
     end

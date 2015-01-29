@@ -24,18 +24,18 @@ module Sequel
             config.merge! unicache_keys: key
             @unicache_key_configurations[key] = Configuration.new config
           end
+        end
 
-          def unicache_class_configuration
-            Utils.initialize_unicache_for_class self unless @unicache_class_configuration # Initialize class first
-            Utils.initialize_unicache_for_key self unless @unicache_key_configurations # Initialize key
-            @unicache_class_configuration
-          end
+        def unicache_class_configuration
+          Utils.initialize_unicache_for_class self unless @unicache_class_configuration # Initialize class first
+          Utils.initialize_unicache_for_key self unless @unicache_key_configurations # Initialize key
+          @unicache_class_configuration
+        end
 
-          def unicache_configurations
-            Utils.initialize_unicache_for_class self unless @unicache_class_configuration # Initialize class first
-            Utils.initialize_unicache_for_key self unless @unicache_key_configurations # Initialize key
-            @unicache_key_configurations
-          end
+        def unicache_configurations
+          Utils.initialize_unicache_for_class self unless @unicache_class_configuration # Initialize class first
+          Utils.initialize_unicache_for_key self unless @unicache_key_configurations # Initialize key
+          @unicache_key_configurations
         end
 
       public
@@ -78,6 +78,7 @@ module Sequel
           class << self
             def initialize_unicache_for_class model_class
               model_class.instance_exec do
+                plugin :dirty
                 class_config = Unicache.config.to_h.merge model_class: model_class
                 @unicache_class_configuration = Configuration.new class_config
               end

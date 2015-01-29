@@ -100,6 +100,28 @@ describe Sequel::Unicache::Write do
       cache = memcache.get("id:#{user.id}")
       expect(cache).to be_nil
     end
+
+    it 'should still expire all cache even if model is not completed' do
+      User.instance_exec { unicache :username, key: ->(values, _) { "username:#{values[:username]}" } }
+      user = User[user_id]
+      cache = memcache.get("username:bachue@gmail.com")
+      expect(cache).not_to be_nil
+      user = User.select(:id, :company_name)[user_id]
+      user.set(company_name: 'VMware').save
+      cache = memcache.get("username:bachue@gmail.com")
+      expect(cache).to be_nil
+    end
+
+    it 'should expire obsolate cache if value of the unicache is changed' do
+      User.instance_exec { unicache :username }
+      user = User[user_id]
+      User.db.transaction(auto_savepoint: true) do
+        user.set(username: 'bachue@emc.com').save
+        user.set(username: 'bachue@vmware.com', company_name: 'VMware').save
+      end
+      cache = memcache.get("username:bachue@gmail.com")
+      expect(cache).to be_nil
+    end
   end
 
   context 'expire when delete' do

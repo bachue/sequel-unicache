@@ -6,7 +6,7 @@ module Sequel
       class << self
         def write model
           # If model is not completed, don't cache it
-          columns, keys = model.columns, model.values.keys
+          columns, keys = model.columns, model.keys
           if (columns - keys).empty?
             cache = {}
             all_configs_of(model).each do |config|
@@ -19,9 +19,6 @@ module Sequel
               end
             end
           end
-        rescue Sequel::Error => error
-          Unicache::Logger.warn model, "[Unicache] Sequel::Error happen when write cache for a model, fallback to expire. Reason: #{error.message}. Model: #{model.inspect}"
-          expire model
         rescue => error
           Unicache::Logger.error model, "[Unicache] Exception happen when write cache for a model, fallback to expire. Reason: #{error.message}. Model: #{model.inspect}"
           error.backtrace.each do |trace|
@@ -31,8 +28,10 @@ module Sequel
         end
 
         def expire model
-          all_configs_of(model).each do |config|
-            expire_for model, config
+          configs = all_configs_of model
+          model.reload unless check_completeness? model, configs
+          restore_previous model do
+            configs.each { |config| expire_for model, config }
           end
         rescue => error
           Unicache::Logger.fatal model, "[Unicache] Exception happen when expire cache for a model. Reason: #{error.message}. Model: #{model.inspect}"
@@ -72,14 +71,31 @@ module Sequel
         end
 
         def cache_key model, config
-          values = filter_keys model, config.unicache_keys
+          values = select_keys model, config.unicache_keys
           config.key.(values, config)
         end
 
       private
 
-        def filter_keys model, keys
+        def restore_previous model
+          previous_changes = model.instance_variable_get :@_unicache_previous_values
+          unless previous_changes.nil? || previous_changes.empty?
+            origin = select_keys model, previous_changes.keys
+            model.set previous_changes
+          end
+          yield
+        ensure
+          model.set origin
+        end
+
+        def select_keys model, keys
           Array(keys).inject({}) { |hash, attr| hash.merge attr => model[attr] }
+        end
+
+        def check_completeness? model, all_configs
+          all_unicache_keys = all_configs.map {|config| config.unicache_keys }.flatten.uniq
+          model_keys = model.keys
+          all_unicache_keys.all? {|key| model_keys.include? key }
         end
 
         def permitted? model, config
