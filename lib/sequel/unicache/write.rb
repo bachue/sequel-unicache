@@ -81,11 +81,11 @@ module Sequel
           previous_changes = model.instance_variable_get :@_unicache_previous_values
           unless previous_changes.nil? || previous_changes.empty?
             origin = select_keys model, previous_changes.keys
-            model.set previous_changes
+            model.set_all previous_changes
           end
           yield
         ensure
-          model.set origin
+          model.set_all origin
         end
 
         def select_keys model, keys

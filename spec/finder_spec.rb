@@ -10,7 +10,7 @@ describe Sequel::Unicache::Finder do
   context 'simple pk' do
     it 'should cache' do
       user = User[user_id]
-      cache = memcache.get("id:#{user.id}")
+      cache = memcache.get "id:#{user.id}"
       expect(cache).not_to be_nil
       expect(Marshal.load(cache)).to eq user.values
     end

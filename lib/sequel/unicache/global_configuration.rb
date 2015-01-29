@@ -5,7 +5,7 @@ module Sequel
         @opts = default_config.merge opts
       end
 
-      def set_all opts
+      def set opts
         @opts.merge! opts
       end
 
@@ -35,7 +35,7 @@ module Sequel
         end
 
         def configure opts
-          @config.set_all opts
+          @config.set opts
         end
 
         def enable
