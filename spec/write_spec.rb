@@ -185,7 +185,34 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
 
-    it 'should always expire cache if write through is disabled' do
+    it 'should fallback to expire cache if unicache is expired' do
+      User.instance_exec { unicache :id, if: ->(model, _) { model.company_name == 'EMC' } }
+      user = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
+                         company_name: 'EMC', department: 'Mozy', employee_id: 23456
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).not_to be_nil
+
+      User.without_unicache do
+        user.set_all(company_name: 'VMware').save
+        cache = memcache.get("id:#{user.id}")
+        expect(cache).to be_nil
+      end
+    end
+
+    it 'should fallback to expire cache if unicache is expired for that key' do
+      User.instance_exec { unicache :id, if: ->(model, _) { model.company_name == 'EMC' } }
+      user = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
+                         company_name: 'EMC', department: 'Mozy', employee_id: 23456
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).not_to be_nil
+
+      User.disable_unicache_for(:id)
+      user.set_all(company_name: 'VMware').save
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).to be_nil
+    end
+
+    it 'should always expire cache even if write through is disabled' do
       User.instance_exec { unicache :id, if: ->(model, _) { model.company_name == 'EMC' } }
       user = User.create username: 'bachue@emc.mozy.com', password: 'bachue',
                          company_name: 'EMC', department: 'Mozy', employee_id: 23456
@@ -200,9 +227,39 @@ describe Sequel::Unicache::Write do
   end
 
   context 'delete' do
-    it 'should expire cache'
-    it 'should not expire cache until transaction is permitted'
-    it 'should still expire cache even if unicache is not enabled for that key'
-    it 'should not expire cache if unicache is not enabled'
+    let!(:user) do
+      User.create username: 'bachue@emc.mozy.com', password: 'bachue',
+                  company_name: 'EMC', department: 'Mozy', employee_id: 23456
+    end
+
+    it 'should expire cache' do
+      user.destroy
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).to be_nil
+    end
+
+    it 'should not expire cache until transaction is permitted' do
+      User.db.transaction auto_savepoint: true do
+        user.destroy
+        cache = memcache.get("id:#{user.id}")
+        expect(cache).not_to be_nil
+      end
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).to be_nil
+    end
+
+    it 'should still expire cache even if unicache is not enabled for that key' do
+      User.disable_unicache_for(:id)
+      user.destroy
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).to be_nil
+    end
+
+    it 'should still expire cache even if unicache is not enabled' do
+      Sequel::Unicache.disable
+      user.destroy
+      cache = memcache.get("id:#{user.id}")
+      expect(cache).to be_nil
+    end
   end
 end
