@@ -1,35 +1,44 @@
+require 'sequel/unicache/logger'
+
 module Sequel
   module Unicache
     class Write
       class << self
         def write model
-          # If model is not completed, force to reload it automatically
+          # If model is not completed, don't cache it
           columns, keys = model.columns, model.values.keys
-          model.reload unless (columns - keys).empty?
-          cache = {}
-          all_configs_of(model).each do |config|
-            # write through requires enabled unicache and if-condition returns true
-            # otherwise will fallback to expire
-            if permitted? model, config
-              write_for model, config, cache if config.write_through
-            else
-              expire_for model, config
+          if (columns - keys).empty?
+            cache = {}
+            all_configs_of(model).each do |config|
+              # write cache requires enabled unicache and if-condition returns true
+              # otherwise will fallback to expire
+              if permitted? model, config
+                write_for model, config, cache
+              else
+                expire_for model, config
+              end
             end
           end
-          # TODO: logger
-        rescue
-          fail $!.message and exit! # TODO: Delete it
-          # TODO: logger
+        rescue Sequel::Error => error
+          Unicache::Logger.warn model, "[Unicache] Sequel::Error happen when write cache for a model, fallback to expire. Reason: #{error.message}. Model: #{model.inspect}"
+          expire model
+        rescue => error
+          Unicache::Logger.error model, "[Unicache] Exception happen when write cache for a model, fallback to expire. Reason: #{error.message}. Model: #{model.inspect}"
+          error.backtrace.each do |trace|
+            Unicache::Logger.error model, "[Unicache] #{trace}"
+          end
+          expire model
         end
 
         def expire model
           all_configs_of(model).each do |config|
             expire_for model, config
           end
-          # TODO: logger
-        rescue
-          fail $!.message and exit! # TODO: Delete it
-          # TODO: logger
+        rescue => error
+          Unicache::Logger.fatal model, "[Unicache] Exception happen when expire cache for a model. Reason: #{error.message}. Model: #{model.inspect}"
+          error.backtrace.each do |trace|
+            Unicache::Logger.fatal model, "[Unicache] #{trace}"
+          end
         end
 
         def write_for model, config, results
@@ -40,11 +49,22 @@ module Sequel
             results[config.serialize] = cache
           end
           config.cache.set key, cache, config.ttl
+        rescue => error
+          Unicache::Logger.error config, "[Unicache] Exception happen when write cache for unicache_key, fallback to expire. Reason: #{error.message}. Model: #{model.inspect}. Config: #{config.inspect}"
+          error.backtrace.each do |trace|
+            Unicache::Logger.error config, "[Unicache] #{trace}"
+          end
+          expire_for model, config
         end
 
         def expire_for model, config
           key = cache_key model, config
           config.cache.delete key
+        rescue => error
+          Unicache::Logger.fatal config, "[Unicache] Exception happen when expire cache for unicache_key. Reason: #{error.message}. Model: #{model.inspect}. Config: #{config.inspect}"
+          error.backtrace.each do |trace|
+            Unicache::Logger.fatal config, "[Unicache] #{trace}"
+          end
         end
 
         def all_configs_of model

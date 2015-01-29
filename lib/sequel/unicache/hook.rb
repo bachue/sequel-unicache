@@ -13,7 +13,7 @@ module Sequel
       module InstanceMethods
         def after_commit
           super
-          Write.write self
+          Write.expire self
         end
 
         def after_destroy_commit

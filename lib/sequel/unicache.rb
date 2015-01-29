@@ -12,5 +12,6 @@ module Sequel
 
   class Model
     extend Unicache::Configuration::ClassMethods
+    extend Unicache::Finder::ClassMethods
   end
 end

@@ -10,12 +10,14 @@ module Sequel
           else
             config = unicache_for primary_key # primary key is always unicache keys, no needs to fuzzy search
             if unicache_enabled_for? config
-              key = config.key.({primary_key => pk})
+              key = config.key.({primary_key => pk}, config)
               cache = config.cache.get key
               if cache
                 dataset.row_proc.call config.deserialize.(cache, config)
               else
-                super # cache not found
+                model = super # cache not found
+                Write.write model if model
+                model
               end
             else
               super

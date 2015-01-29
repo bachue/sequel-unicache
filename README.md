@@ -1,10 +1,8 @@
 # Sequel Unicache
 
-Read through, Write through caching library inspired by Cache Money, support Sequel 4
+Read through caching library inspired by Cache Money, support Sequel 4
 
-Read-Through: Queries by ID or any specified unique key, like `User[params[:id]]` or `User[username: 'bachue@gmail.com']`, will first look in memcache store and then look in the database for the results of that query. If there is a cache miss, it will populate the cache.
-
-Write-Through: As objects are created, updated, and deleted, all of the caches are automatically kept up-to-date and coherent.
+Read-Through: Queries by ID or any specified unique key, like `User[params[:id]]` or `User[username: 'bachue@gmail.com']`, will first look in memcache store and then look in the database for the results of that query. If there is a cache miss, it will populate the cache. As objects are updated and deleted, all of the caches are automatically expired.
 
 ## Dependency
 
@@ -64,7 +62,6 @@ class User < Sequel::Model
            deserialize: {|cache, opts| MessagePack.unpack(cache) }, # Deserialization method, will overwrite the global configuration
            key: {|hash, opts| "users/#{hash[:id]}" },               # Cache key generation method, will overwrite the global configuration
            logger: Logger.new(STDERR),                              # Object for log, will overwrite the global configuration
-           write_through: false                                     # Disable write through, by default it's enabled
 
   # by default primary key is always unique cache key, all settings will just follow global configuration and class configuration
   # key level configuration for username
@@ -109,7 +106,7 @@ User.without_unicache do
 end
 ```
 
-But during unicache is disabled, model update or delete won't write through cache but expire it.
+During unicache is disabled, model modification or deletion will still expire the cache, don't worry about it.
 
 You're not supposed to enable Unicache during the testing or development. These methods can help to enable or disable all Unicache features.
 
@@ -119,7 +116,7 @@ Sequel::Unicache.disable
 Sequel::Unicache.enabled?
 ```
 
-Unicache won't write-through cache until you create, update or delete a model and commit the transaction successfully.
+Unicache won't expire cache until you create, update or delete a model and commit the transaction successfully.
 
 If you reload a model, cache will also be updated.
 
@@ -131,8 +128,8 @@ If you reload a model, cache will also be updated.
 
 * If you want to configure both class-level and key-level for a model, configure class-level first.
 
-* If someone update database by SQL directly (even Sequel APIs like `User.insert` or `User.db.[]` won't be supported) or by another project without unicache, then cache in memcache won't be updated automatically.
-  You must manipulate cache manually or by another mechanism.
+* If someone update database by SQL directly (even Sequel APIs like `User.insert`, `user.delete` or `User.db.[]` won't be supported) or by another project without unicache, then cache in memcache won't be expired automatically.
+  You must expire cache manually or by another mechanism.
 
 ## Contributing
 
