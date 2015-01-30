@@ -1,4 +1,7 @@
 language: ruby
+before_script: "cp spec/memcache.yml.example spec/memcache.yml"
 script: "bundle exec rake test"
+rvm:
+  - 2.2.0
 services:
   - memcached
