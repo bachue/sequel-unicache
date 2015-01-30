@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/bachue/sequel-unicache.svg)](https://travis-ci.org/bachue/sequel-unicache)
+
 # Sequel Unicache
 
 Read through caching library inspired by Cache Money, support Sequel 4
