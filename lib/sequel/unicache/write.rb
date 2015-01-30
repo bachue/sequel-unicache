@@ -10,19 +10,20 @@ module Sequel
           if (columns - keys).empty?
             cache = {}
             all_configs_of(model).each do |config|
-              # write cache requires enabled unicache and if-condition returns true
+              continue unless enabled? model, config # if unicached is disabled, do nothing
+              # write cache requires if-condition returns true
               # otherwise will fallback to expire
               if permitted? model, config
-                write_for model, config, cache
+                write_for model, config, cache unless suspended? # must be allowed to write cache
               else
                 expire_for model, config
               end
             end
           end
         rescue => error
-          Unicache::Logger.error model, "[Unicache] Exception happen when write cache for a model, fallback to expire. Reason: #{error.message}. Model: #{model.inspect}"
+          Unicache::Logger.fatal model, "[Unicache] Exception happen when write cache for a model, fallback to expire. Reason: #{error.message}. Model: #{model.inspect}"
           error.backtrace.each do |trace|
-            Unicache::Logger.error model, "[Unicache] #{trace}"
+            Unicache::Logger.fatal model, "[Unicache] #{trace}"
           end
           expire model
         end
@@ -30,8 +31,9 @@ module Sequel
         def expire model
           configs = all_configs_of model
           model.reload unless check_completeness? model, configs
-          restore_previous model do
-            configs.each { |config| expire_for model, config }
+          restore_previous model do # restore to previous values temporarily
+            # Unicache must be enabled then do expiration
+            configs.each { |config| expire_for model, config if enabled? model, config }
           end
         rescue => error
           Unicache::Logger.fatal model, "[Unicache] Exception happen when expire cache for a model. Reason: #{error.message}. Model: #{model.inspect}"
@@ -98,9 +100,16 @@ module Sequel
           all_unicache_keys.all? {|key| model_keys.include? key }
         end
 
+        def enabled? model, config
+          model.class.unicache_enabled_for? config
+        end
+
+        def suspended?
+          Unicache.unicache_suspended?
+        end
+
         def permitted? model, config
-          model.class.unicache_enabled_for?(config) &&
-          (!config.if || config.if.(model, config))
+          !config.if || config.if.(model, config)
         end
       end
     end

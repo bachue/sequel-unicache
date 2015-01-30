@@ -49,6 +49,25 @@ module Sequel
         def enabled?
           !@disabled
         end
+
+        def unicache_suspended?
+          Thread.current[:unicache_suspended]
+        end
+
+        def suspend_unicache
+          if block_given?
+            origin, Thread.current[:unicache_suspended] = Thread.current[:unicache_suspended], true
+            yield
+          else
+            origin = true
+          end
+        ensure
+          Thread.current[:unicache_suspended] = origin
+        end
+
+        def unsuspend_unicache
+          Thread.current[:unicache_suspended] = false
+        end
       end
     end
   end

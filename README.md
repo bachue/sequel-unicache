@@ -95,32 +95,37 @@ User[1].expire_unicache_key except: [:id]
 User.expire_unicache_key 1
 ```
 
-You can enable or disable cache during initialization, or temporarily disable cache in a block on runtime:
+You can temporarily suspend / unsuspend read-through on runtime:
 
 ```ruby
-User.enable_unicache_for :id
-User.disable_unicache_for :id
-User.unicache_enabled_for? :id
-User.without_unicache do
+# These three APIs are thread-safe
+Sequel::Unicache.suspend_unicache
+Sequel::Unicache.unsuspend_unicache
+Sequel::Unicache.suspend_unicache do
   User[1] # query database directly
 end
 ```
 
-During unicache is disabled, model modification or deletion will still expire the cache, don't worry about it.
+Even if read-through is suspended, model modification or deletion will still expire the cache, don't worry about it.
 
 You're not supposed to enable Unicache during the testing or development. These methods can help to enable or disable all Unicache features.
 
 ```ruby
+# Notice: These three APIs are not thread-safe, do not call then on runtime!
 Sequel::Unicache.enable
 Sequel::Unicache.disable
 Sequel::Unicache.enabled?
 ```
+
+But if Unicache is disabled, no expiration any more, cache could be dirty because of that.
 
 Unicache won't expire cache until you create, update or delete a model and commit the transaction successfully.
 
 If you reload a model, cache will also be updated.
 
 ## Notice
+
+* Database must support transaction.
 
 * You must call Sequel APIs as the document mentioned then cache can work.
 

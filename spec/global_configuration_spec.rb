@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 describe Sequel::Unicache::GlobalConfiguration do
   it 'should be true' do
     expect(Sequel::Unicache.config).to be_kind_of Sequel::Unicache::GlobalConfiguration
@@ -36,5 +34,23 @@ describe Sequel::Unicache::GlobalConfiguration do
                                                serialize: serialize_proc,
                                                deserialize: deserialize_proc,
                                                key: key_proc
+  end
+
+  it 'can enable & disable unicache feature' do
+    Sequel::Unicache.disable
+    expect(Sequel::Unicache.enabled?).to be false
+    Sequel::Unicache.enable
+    expect(Sequel::Unicache.enabled?).to be true
+  end
+
+  it 'can suspend & unsuspend read-through' do
+    Sequel::Unicache.suspend_unicache
+    expect(Sequel::Unicache.unicache_suspended?).to be true
+    Sequel::Unicache.unsuspend_unicache
+    expect(Sequel::Unicache.unicache_suspended?).to be false
+    Sequel::Unicache.suspend_unicache do
+      expect(Sequel::Unicache.unicache_suspended?).to be true
+    end
+    expect(Sequel::Unicache.unicache_suspended?).to be false
   end
 end

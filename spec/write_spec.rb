@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 describe Sequel::Unicache::Write do
   let!(:user_id) { User.first.id }
 
@@ -32,14 +30,15 @@ describe Sequel::Unicache::Write do
 
     it 'should not read through cache if unicache is not enabled' do
       User.instance_exec { unicache :id, enabled: true }
-      user = User.without_unicache do
-               User[user_id]
-             end
-      cache = memcache.get "id:#{user.id}"
-      expect(cache).to be_nil
-
       Sequel::Unicache.disable
       user = User[user_id]
+      cache = memcache.get "id:#{user.id}"
+      expect(cache).to be_nil
+    end
+
+    it 'should not read through cache if read-through is suspended' do
+      User.instance_exec { unicache :id, enabled: true }
+      user = Sequel::Unicache.suspend_unicache { User[user_id] }
       cache = memcache.get "id:#{user.id}"
       expect(cache).to be_nil
     end
@@ -63,7 +62,7 @@ describe Sequel::Unicache::Write do
   end
 
   context 'expire when update' do
-    let(:user) { User[user_id] }
+    let!(:user) { User[user_id] }
 
     it 'should expire cache' do
       cache = memcache.get "id:#{user.id}"
@@ -97,21 +96,32 @@ describe Sequel::Unicache::Write do
       expect(Marshal.load(cache)).to eq origin
     end
 
-    it 'should still expire cache even if unicache is not enabled for that key' do
-      User.disable_unicache_for(:id)
+    it 'should not expire cache even if unicache is not enabled for that key' do
+      User.unicache_for(:id).enabled = false
+      origin = user.values.dup
       user.set(company_name: 'VMware').save
       cache = memcache.get "id:#{user.id}"
-      expect(cache).to be_nil
+      expect(cache).not_to be_nil
+      expect(Marshal.load(cache)).to eq origin
     end
 
-    it 'should still expire cache even if unicache is not enabled' do
+    it 'should not expire cache even if unicache is not enabled' do
       Sequel::Unicache.disable
+      origin = user.values.dup
       user.set(company_name: 'VMware').save
+      cache = memcache.get "id:#{user.id}"
+      expect(cache).not_to be_nil
+      expect(Marshal.load(cache)).to eq origin
+    end
+
+    it 'should still expire cache even if read-through is suspended' do
+      Sequel::Unicache.suspend_unicache { user.set(company_name: 'VMware').save }
       cache = memcache.get "id:#{user.id}"
       expect(cache).to be_nil
     end
 
     it 'should still expire all cache even if model is not completed' do
+      memcache.flush_all # Clear all cache first
       User.instance_exec { unicache :username, key: ->(values, _) { "username:#{values[:username]}" } }
       user = User[user_id]
       cache = memcache.get "username:bachue@gmail.com"
@@ -143,7 +153,7 @@ describe Sequel::Unicache::Write do
   end
 
   context 'expire when delete' do
-    let(:user) { User[user_id] }
+    let!(:user) { User[user_id] }
 
     it 'should expire cache' do
       cache = memcache.get "id:#{user.id}"
@@ -163,16 +173,24 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
 
-    it 'should still expire cache even if unicache is not enabled for that key' do
-      User.disable_unicache_for(:id)
+    it 'should not expire cache even if unicache is not enabled for that key' do
+      User.unicache_for(:id).enabled = false
       user.destroy
       cache = memcache.get "id:#{user.id}"
-      expect(cache).to be_nil
+      expect(cache).not_to be_nil
+      expect(Marshal.load(cache)).to eq user.values
     end
 
-    it 'should still expire cache even if unicache is not enabled' do
+    it 'should not expire cache even if unicache is not enabled' do
       Sequel::Unicache.disable
       user.destroy
+      cache = memcache.get "id:#{user.id}"
+      expect(cache).not_to be_nil
+      expect(Marshal.load(cache)).to eq user.values
+    end
+
+    it 'should still expire cache even if read-through is suspended' do
+      Sequel::Unicache.suspend_unicache { user.destroy }
       cache = memcache.get "id:#{user.id}"
       expect(cache).to be_nil
     end

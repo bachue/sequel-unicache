@@ -53,25 +53,10 @@ module Sequel
           config
         end
 
-        def enable_unicache_for *key
-          unicache_for(*key).enabled = true
-        end
-
-        def disable_unicache_for *key
-          unicache_for(*key).enabled = false
-        end
-
         def unicache_enabled_for? *key
-          result = !@disable_unicache && Unicache.enabled?
+          result = Unicache.enabled?
           result &&= key.first.is_a?(Configuration) ? key.first.enabled : unicache_for(*key).enabled
           result
-        end
-
-        def without_unicache
-          origin, @disable_unicache = @disable_unicache, true
-          yield
-        ensure
-          @disable_unicache = origin
         end
 
         class Utils

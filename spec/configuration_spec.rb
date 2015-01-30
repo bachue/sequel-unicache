@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 describe Sequel::Unicache::Configuration do
   before :each do
     Sequel::Unicache.configure cache: memcache, enabled: true, ttl: 120
@@ -90,27 +88,15 @@ describe Sequel::Unicache::Configuration do
   it 'can enable & disable any unicache key' do
     User.instance_exec { unicache enabled: false }
     expect(User.unicache_for(:id).enabled).to be false
-    User.enable_unicache_for :id
-    expect(User.unicache_enabled_for?(:id)).to be true
-    User.disable_unicache_for :id
-    expect(User.unicache_enabled_for?(:id)).to be false
-    User.enable_unicache_for :id
-    expect(User.unicache_enabled_for?(:id)).to be true
-    User.without_unicache do
-      expect(User.unicache_enabled_for?(:id)).to be false
-      User.enable_unicache_for :id # within without_unicache, there's no way to enable cache
-      expect(User.unicache_enabled_for?(:id)).to be false
-    end
+    User.unicache_for(:id).enabled = true
     expect(User.unicache_enabled_for?(:id)).to be true
   end
 
   it 'can enable & disable unicache feature' do
     expect(User.unicache_enabled_for?(:id)).to be true
     Sequel::Unicache.disable
-    expect(Sequel::Unicache.enabled?).to be false
     expect(User.unicache_enabled_for?(:id)).to be false
     Sequel::Unicache.enable
-    expect(Sequel::Unicache.enabled?).to be true
     expect(User.unicache_enabled_for?(:id)).to be true
   end
 
@@ -119,7 +105,7 @@ describe Sequel::Unicache::Configuration do
     expect(User.unicache_for(:id, :department)).to be_nil
     expect(User.unicache_for(:id, :department, fuzzy: true)).to be User.unicache_for(:id)
     expect(User.unicache_for(:id, :department, :employee_id, :company_name, fuzzy: true)).to be User.unicache_for(:id)
-    User.disable_unicache_for(:id)
+    User.unicache_for(:id).enabled = false
     expect(User.unicache_for(:id, :department, fuzzy: true)).to be_nil
     expect(User.unicache_for(:id, :department, :employee_id, :company_name, fuzzy: true)).to be User.unicache_for(:department, :employee_id, :company_name)
   end

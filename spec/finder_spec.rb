@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 describe Sequel::Unicache::Finder do
   let!(:user_id) { User.first.id }
 
