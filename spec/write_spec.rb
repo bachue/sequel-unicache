@@ -59,6 +59,15 @@ describe Sequel::Unicache::Write do
       cache = memcache.get "id:#{user.id}"
       expect(cache).to be_nil
     end
+
+    it 'shoud not read from cache when reload' do
+      user = User[user_id]
+      Sequel::Unicache.disable
+      User[user_id].set(company_name: 'VMware').save
+      Sequel::Unicache.enable
+      user.reload
+      expect(user.company_name).to eq 'VMware'
+    end
   end
 
   context 'expire when update' do
