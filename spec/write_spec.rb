@@ -14,11 +14,11 @@ describe Sequel::Unicache::Write do
     end
 
     it 'should serialize model into specified format' do
-      User.instance_exec { unicache :id, serialize: ->(values, _) { values.to_json } }
+      User.instance_exec { unicache :id, serialize: ->(values, _) { values.to_yaml } }
       user = User[user_id]
       cache = memcache.get "id:#{user.id}"
       expect(cache).not_to be_nil
-      expect(JSON.load(cache).symbolize_keys).to eq user.values
+      expect(YAML.load(cache)).to eq user.values
     end
 
     it 'should not read through cache if unicache is not enabled for this key' do

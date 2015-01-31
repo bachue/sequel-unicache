@@ -16,7 +16,8 @@ module Sequel
               key = config.key.({primary_key => pk}, config)
               cache = config.cache.get key
               if cache
-                dataset.row_proc.call config.deserialize.(cache, config)
+                values = config.deserialize.(cache, config)
+                dataset.row_proc.call values
               else
                 model = super # cache not found
                 Write.write model if model
