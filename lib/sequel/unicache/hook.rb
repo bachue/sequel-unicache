@@ -12,7 +12,7 @@ module Sequel
 
       module InstanceMethods
         def after_commit
-          Write.expire self
+          Write.expire self if Unicache.enabled?
           @_unicache_previous_values = nil
           super
         end
@@ -23,7 +23,7 @@ module Sequel
         end
 
         def after_destroy_commit
-          Write.expire self
+          Write.expire self if Unicache.enabled?
           super
         end
 

@@ -6,8 +6,7 @@ module Sequel
       class << self
         def write model
           # If model is not completed, don't cache it
-          columns, keys = model.columns, model.keys
-          if (columns - keys).empty?
+          if (model.columns - model.keys).empty?
             cache = {}
             all_configs_of(model).each do |config|
               continue unless enabled? model, config # if unicached is disabled, do nothing

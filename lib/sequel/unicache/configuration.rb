@@ -56,9 +56,7 @@ module Sequel
         end
 
         def unicache_enabled_for? *key
-          result = Unicache.enabled?
-          result &&= key.first.is_a?(Configuration) ? key.first.enabled : unicache_for(*key).enabled
-          result
+          key.first.is_a?(Configuration) ? key.first.enabled : unicache_for(*key).enabled
         end
 
         class Utils

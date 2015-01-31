@@ -3,7 +3,8 @@ module Sequel
     module Finder # Provide class methods for Sequel::Model, to find cache by unicache keys
       module ClassMethods
         def primary_key_lookup pk
-          if Unicache.unicache_suspended? ||
+          if !Unicache.enabled? ||
+             Unicache.unicache_suspended? ||
              dataset.joined_dataset? ||
              !@fast_pk_lookup_sql
             # If it's not a simple table, simple pk,

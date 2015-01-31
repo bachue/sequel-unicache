@@ -92,14 +92,6 @@ describe Sequel::Unicache::Configuration do
     expect(User.unicache_enabled_for?(:id)).to be true
   end
 
-  it 'can enable & disable unicache feature' do
-    expect(User.unicache_enabled_for?(:id)).to be true
-    Sequel::Unicache.disable
-    expect(User.unicache_enabled_for?(:id)).to be false
-    Sequel::Unicache.enable
-    expect(User.unicache_enabled_for?(:id)).to be true
-  end
-
   it 'can fuzzy search for unicache keys' do
     User.instance_exec { unicache :department, :employee_id, :company_name }
     expect(User.unicache_for(:id, :department)).to be_nil
