@@ -1,4 +1,6 @@
 require 'sequel/unicache/global_configuration'
+require 'sequel/unicache/hook'
+require 'sequel/unicache/transaction'
 
 module Sequel
   module Unicache
@@ -68,6 +70,7 @@ module Sequel
                 @unicache_class_configuration = Configuration.new class_config
               end
               Hook.install_hooks_for_unicache
+              Transaction.install_hooks_for_unicache
             end
 
             def initialize_unicache_for_key model_class

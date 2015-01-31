@@ -104,11 +104,13 @@ You can temporarily suspend / unsuspend read-through on runtime:
 Sequel::Unicache.suspend_unicache
 Sequel::Unicache.unsuspend_unicache
 Sequel::Unicache.suspend_unicache do
-  User[1] # query database directly
+  User[1] # query database directly, and won't write model into cache
 end
 ```
 
 Even if read-through is suspended, model modification or deletion will still expire the cache, don't worry about it.
+
+Within a transaction, read-through will also be suspended, then you can query data from transaction rather than cache.
 
 You're not supposed to enable Unicache during the testing or development. These methods can help to enable or disable all Unicache features.
 

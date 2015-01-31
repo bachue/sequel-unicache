@@ -145,10 +145,13 @@ describe Sequel::Unicache::Write do
 
     it 'should still get currect value during a transaction' do
       user = User[user_id]
+      expect(Sequel::Unicache.unicache_suspended?).to be false
       User.db.transaction auto_savepoint: true do
+        expect(Sequel::Unicache.unicache_suspended?).to be true
         user.set(username: 'bachue@emc.com').save
         expect(User[user_id].username).to eq 'bachue@emc.com'
       end
+      expect(Sequel::Unicache.unicache_suspended?).to be false
     end
   end
 
