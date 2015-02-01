@@ -77,8 +77,11 @@ module Sequel
 
             def initialize_unicache_for_key model_class
               model_class.instance_exec do
-                pk_config = @unicache_class_configuration.to_h.merge unicache_keys: model_class.primary_key
-                @unicache_key_configurations = { primary_key => Configuration.new(pk_config) }
+                @unicache_key_configurations = {}
+                if primary_key
+                  pk_config = @unicache_class_configuration.to_h.merge unicache_keys: model_class.primary_key
+                  @unicache_key_configurations[primary_key] = Configuration.new pk_config
+                end
               end
             end
 
