@@ -4,32 +4,43 @@ require 'sequel/unicache/transaction'
 
 module Sequel
   module Unicache
-    class Configuration < GlobalConfiguration
-      %i(if model_class unicache_keys).each do |attr|
+    class ModelConfiguration < GlobalConfiguration
+      %i(model_class version).each do |attr|
         define_method(attr) { @opts[attr] }
         define_method("#{attr}=") { |val| @opts[attr] = val }
       end
+    end
+
+    class Configuration < ModelConfiguration
+      %i(if unicache_keys).each do |attr|
+        define_method(attr) { @opts[attr] }
+        define_method("#{attr}=") { |val| @opts[attr] = val }
+      end
+      undef_method :version
+      undef_method :version=
 
       module ClassMethods
       private
         # Configure for specfied model
         def unicache *args
           opts = args.last.is_a?(Hash) ? args.pop : {}
-          Utils.initialize_unicache_for_class self unless @unicache_class_configuration # Initialize class first
+          Utils.initialize_unicache_for_class self unless @unicache_model_configuration # Initialize class first
           if args.empty? # class-level configuration
             config = Unicache.config.to_h.merge opts
-            @unicache_class_configuration = Configuration.new config.merge model_class: self
+            config = {version: 1}.merge(config).merge model_class: self
+            @unicache_model_configuration = ModelConfiguration.new config
           else           # key-level configuration
             Utils.initialize_unicache_for_key self unless @unicache_key_configurations # Initialize key
             key = Utils.normalize_key_for_unicache args
-            config = Unicache.config.to_h.merge @unicache_class_configuration.to_h.merge(opts)
+            config = Unicache.config.to_h.merge @unicache_model_configuration.to_h.merge(opts)
+            config.delete :version
             config.merge! unicache_keys: key
             @unicache_key_configurations[key] = Configuration.new config
           end
         end
 
         def initialize_unicache
-          Utils.initialize_unicache_for_class self unless @unicache_class_configuration # Initialize class first
+          Utils.initialize_unicache_for_class self unless @unicache_model_configuration # Initialize class first
           Utils.initialize_unicache_for_key self unless @unicache_key_configurations # Initialize key
         end
 
@@ -55,9 +66,9 @@ module Sequel
           config.cache && config.enabled if config
         end
 
-        def unicache_class_configuration
+        def unicache_model_configuration
           initialize_unicache
-          @unicache_class_configuration
+          @unicache_model_configuration
         end
 
         def unicache_configurations
@@ -70,8 +81,8 @@ module Sequel
             def initialize_unicache_for_class model_class
               model_class.instance_exec do
                 plugin :dirty
-                class_config = Unicache.config.to_h.merge model_class: model_class
-                @unicache_class_configuration = Configuration.new class_config
+                class_config = Unicache.config.to_h.merge model_class: model_class, version: 1
+                @unicache_model_configuration = ModelConfiguration.new class_config
               end
               Hook.install_hooks_for_unicache
               Transaction.install_hooks_for_unicache
@@ -81,7 +92,7 @@ module Sequel
               model_class.instance_exec do
                 @unicache_key_configurations = {}
                 if primary_key
-                  pk_config = @unicache_class_configuration.to_h.merge unicache_keys: model_class.primary_key
+                  pk_config = @unicache_model_configuration.to_h.merge unicache_keys: model_class.primary_key
                   @unicache_key_configurations[primary_key] = Configuration.new pk_config
                 end
               end

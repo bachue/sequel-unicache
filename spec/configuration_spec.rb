@@ -85,6 +85,19 @@ describe Sequel::Unicache::Configuration do
     expect(User.unicache_for(:company_name, :department, :employee_id).unicache_keys).to eq [:company_name, :department, :employee_id]
   end
 
+  it 'can set cache version for each model' do
+    User.instance_exec { unicache version: 3 }
+    expect(User.unicache_model_configuration.version).to be 3
+  end
+
+  it 'cannot get cache version from any key' do
+    expect(User.unicache_for(:id).respond_to?(:version)).to be false
+  end
+
+  it 'Model\'s default version is always 1' do
+    expect(User.unicache_model_configuration.version).to be 1
+  end
+
   it 'can enable & disable any unicache key' do
     User.instance_exec { unicache enabled: false }
     expect(User.unicache_for(:id).enabled).to be false
