@@ -43,7 +43,7 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
 
-    it 'should not write through cache if condition is not permitted' do
+    it 'should not read through cache if condition is not permitted' do
       User.instance_exec { unicache :id, if: ->(model, _) { model.company_name != 'EMC' } }
       user = User[user_id]
       cache = memcache.get "id:#{user.id}"
@@ -60,7 +60,15 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
 
-    it 'shoud not read from cache when reload' do
+    it 'should not read from cache when unicache is disabled' do
+      user = User[user_id]
+      Sequel::Unicache.disable
+      User[user_id].set(company_name: 'VMware').save
+      user.reload
+      expect(user.company_name).to eq 'VMware'
+    end
+
+    it 'should not read from cache when reload' do
       user = User[user_id]
       Sequel::Unicache.disable
       User[user_id].set(company_name: 'VMware').save
@@ -131,13 +139,13 @@ describe Sequel::Unicache::Write do
 
     it 'should still expire all cache even if model is not completed' do
       memcache.flush_all # Clear all cache first
-      User.instance_exec { unicache :username, key: ->(values, _) { "username:#{values[:username]}" } }
+      User.instance_exec { unicache :username, key: ->(values, _) { "username/#{values[:username]}" } }
       user = User[user_id]
-      cache = memcache.get "username:bachue@gmail.com"
+      cache = memcache.get "username/bachue@gmail.com"
       expect(cache).not_to be_nil
       user = User.select(:id, :company_name)[user_id]
       user.set(company_name: 'VMware').save
-      cache = memcache.get "username:bachue@gmail.com"
+      cache = memcache.get "username/bachue@gmail.com"
       expect(cache).to be_nil
     end
 
