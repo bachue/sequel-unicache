@@ -70,7 +70,7 @@ class User < Sequel::Model
   unicache :username,                                               # username will also be an unique key (username should has unique index in database, and never be null)
            ttl: 60                                                  # will override the global and class configuration
 
-  unicache :company_name, :department, :employee_id                 # company_name, department, employee_id have combined unique index
+  unicache :company_name, :department, :employee_id                 # company_name, department, employee_id have complexed unique index
 end
 ```
 

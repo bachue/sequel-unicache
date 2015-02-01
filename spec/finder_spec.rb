@@ -31,7 +31,7 @@ describe Sequel::Unicache::Finder do
 
     it 'should cache' do
       user = User[username: 'bachue@gmail.com']
-      cache = memcache.get "username:bachue@gmail.com"
+      cache = memcache.get 'username:bachue@gmail.com'
       expect(cache).not_to be_nil
       expect(Marshal.load(cache)).to eq user.values
     end
@@ -41,6 +41,28 @@ describe Sequel::Unicache::Finder do
       values = { id: 10, username: 'bachue@emc.com', password: '123456', company_name: 'EMC', department: 'DPC', employee_id: 1000 }
       memcache.set 'username:bachue@emc.com', Marshal.dump(values)
       user = User[username: 'bachue@emc.com']
+      expect(user).not_to be_nil
+      expect(user.values).to eq values
+    end
+  end
+
+  context 'complexed unicache key' do
+    before :each do
+      User.instance_exec { unicache :company_name, :department, :employee_id }
+    end
+
+    it 'should cache' do
+      user = User[company_name: 'EMC', department: 'Mozy', employee_id: 12345]
+      cache = memcache.get 'company_name:EMC:department:Mozy:employee_id:12345'
+      expect(cache).not_to be_nil
+      expect(Marshal.load(cache)).to eq user.values
+    end
+
+    it 'should get model from cache' do
+      expect(User[company_name: 'EMC', department: 'DPC:Mozy', employee_id: 1000]).to be_nil
+      values = { id: 10, username: 'bachue@emc.com', password: '123456', company_name: 'EMC', department: 'DPC:Mozy', employee_id: 1000 }
+      memcache.set 'company_name:EMC:department:DPC\:Mozy:employee_id:1000', Marshal.dump(values)
+      user = User[company_name: 'EMC', department: 'DPC:Mozy', employee_id: 1000]
       expect(user).not_to be_nil
       expect(user.values).to eq values
     end
