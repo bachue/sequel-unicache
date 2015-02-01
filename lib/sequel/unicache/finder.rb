@@ -21,6 +21,7 @@ module Sequel
         end
 
         def first_where hash
+          return primary_key_lookup hash unless hash.is_a? Hash
           config = unicache_for(*hash.keys, fuzzy: true) # need fuzzy search, this function always returns enabled config
           if config
             find_with_cache(hash, config) { super }
