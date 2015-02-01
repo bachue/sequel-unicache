@@ -83,7 +83,7 @@ User.find 1
 User.find username: 'bachue@gmail.com'
 
 User[company_name: 'EMC', employee_id: '12345']
-# TODO: User.find company_name: 'EMC', employee_id: '12345'
+User.find company_name: 'EMC', employee_id: '12345'
 # TODO: article.user
 ```
 

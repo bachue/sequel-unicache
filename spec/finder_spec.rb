@@ -102,5 +102,50 @@ describe Sequel::Unicache::Finder do
         expect(user.values).to eq values
       end
     end
+
+    context 'single unicache key' do
+      before :each do
+        User.instance_exec { unicache :username }
+      end
+
+      it 'should cache' do
+        user = User.find username: 'bachue@gmail.com'
+        cache = memcache.get "username:bachue@gmail.com"
+        expect(cache).not_to be_nil
+        expect(Marshal.load(cache)).to eq user.values
+      end
+
+      it 'should get model from cache' do
+        User.instance_exec { unicache :username, serialize: ->(values, _) { values.to_yaml }, deserialize: ->(values, _) { YAML.load values } }
+        expect(User.find(username: 'bachue@emc.com')).to be_nil
+        values = { id: 10, username: 'bachue@emc.com', password: '123456', company_name: 'EMC', department: 'DPC', employee_id: 1000 }
+        memcache.set 'username:bachue@emc.com', values.to_yaml
+        user = User.find username: 'bachue@emc.com'
+        expect(user).not_to be_nil
+        expect(user.values).to eq values
+      end
+    end
+
+    context 'complexed unicache key' do
+      before :each do
+        User.instance_exec { unicache :company_name, :department, :employee_id }
+      end
+
+      it 'should cache' do
+        user = User.find company_name: 'EMC', department: 'Mozy', employee_id: 12345
+        cache = memcache.get 'company_name:EMC:department:Mozy:employee_id:12345'
+        expect(cache).not_to be_nil
+        expect(Marshal.load(cache)).to eq user.values
+      end
+
+      it 'should get model from cache' do
+        expect(User.find company_name: 'EMC', department: 'DPC:Mozy', employee_id: 1000).to be_nil
+        values = { id: 10, username: 'bachue@emc.com', password: '123456', company_name: 'EMC', department: 'DPC:Mozy', employee_id: 1000 }
+        memcache.set 'company_name:EMC:department:DPC\:Mozy:employee_id:1000', Marshal.dump(values)
+        user = User.find company_name: 'EMC', department: 'DPC:Mozy', employee_id: 1000
+        expect(user).not_to be_nil
+        expect(user.values).to eq values
+      end
+    end
   end
 end
