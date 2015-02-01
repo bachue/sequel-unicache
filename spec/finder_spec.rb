@@ -73,6 +73,12 @@ describe Sequel::Unicache::Finder do
       it 'should only read-through from simple dataset' do
         User[user_id] # cache primary key
         expect(User.where(department: 'DPC')[user_id]).to be_nil
+        expect(User.offset(1)[user_id]).to be_nil
+      end
+
+      it 'should not read-through from joined dataset' do
+        user = User[user_id] # cache primary key
+        expect(User.join(:employees)[1].values).not_to eq user.values
       end
     end
   end
