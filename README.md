@@ -4,13 +4,12 @@
 
 Read through caching library inspired by Cache Money, support Sequel 4
 
-Read-Through: Queries by ID or any specified unique key, like `User[params[:id]]` or `User[username: 'bachue@gmail.com']`, will first look in memcache store and then look in the database for the results of that query. If there is a cache miss, it will populate the cache. As objects are updated and deleted, all of the caches are automatically expired.
+Read-Through: Queries by ID or any specified unique key, like `User[params[:id]]` or `User[username: 'bachue@gmail.com']`, will first look in Memcache/Redis store and then look in the database for the results of that query. If there is a cache miss, it will populate the cache. As objects are updated and deleted, all of the caches are automatically expired.
 
 ## Dependency
 
 Ruby >= 2.1.0
 Sequel >= 4.0
-Dalli as memcache store (currently it's the only well supported driver)
 
 ## Installation
 
@@ -33,8 +32,7 @@ Or install it yourself as:
 You must configure Unicache during initialization, for Rails, create a file in config/initializers and copy the code into it will be acceptable.
 
 ```ruby
-Sequel::Unicache.configure cache: Dalli::Client.new('localhost:11211'),       # Required, object to manipulate memcache,
-                                                                              # only Dalli is well supported for now
+Sequel::Unicache.configure cache: Dalli::Client.new('localhost:11211'),       # Required, object to manipulate memcache or redis
                    ttl: 60,                                                   # Expiration time, by default it's 0, means won't expire
                    serialize: {|values, opts| Marshal.dump(values) },         # Serialization method,
                                                                               # by default it's Marshal (fast, Ruby native-supported, non-portable)
@@ -59,7 +57,7 @@ class User < Sequel::Model
   # class level configuration, for all unicache keys of the model
   unicache if: {|user, opts| !user.deleted? },                      # don't cache it if model is deleted
            ttl: 30,                                                 # Specify the cache expiration time (unit: second), will overwrite the default configuration
-           cache: Dalli::Client.new('localhost:11211'),             # Memcache store, will overwrite the default configuration
+           cache: Dalli::Client.new('localhost:11211'),             # Memcache/Redis store, will overwrite the default configuration
            serialize: {|values, opts| values.to_msgpack },          # Serialization method, will overwrite the global configuration
            deserialize: {|cache, opts| MessagePack.unpack(cache) }, # Deserialization method, will overwrite the global configuration
            key: {|hash, opts| "users/#{hash[:id]}" },               # Cache key generation method, will overwrite the global configuration
@@ -134,7 +132,7 @@ If you reload a model, cache will also be updated.
 * If you want to configure both class-level and key-level for a model, configure class-level first.
 
 * Unicache use hook to expire cache.
-  If someone update database by SQL directly (even Sequel APIs like `User.insert`, `user.delete` or `User.db.[]` won't be supported) or by another project without unicache, then cache in memcache won't be expired automatically.
+  If someone update database by SQL directly (even Sequel APIs like `User.insert`, `user.delete` or `User.db.[]` won't be supported) or by another project without unicache, then cache in Memcache/Redis won't be expired automatically.
   You must expire cache manually or by another mechanism.
 
 ## Contributing
