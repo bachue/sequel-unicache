@@ -26,6 +26,9 @@ describe Sequel::Unicache::Write do
       user = User[user_id]
       cache = memcache.get "id:#{user.id}"
       expect(cache).to be_nil
+      user = User.find user_id
+      cache = memcache.get "id:#{user.id}"
+      expect(cache).to be_nil
     end
 
     it 'should not read through cache if unicache is not enabled' do
@@ -34,11 +37,17 @@ describe Sequel::Unicache::Write do
       user = User[user_id]
       cache = memcache.get "id:#{user.id}"
       expect(cache).to be_nil
+      user = User.find user_id
+      cache = memcache.get "id:#{user.id}"
+      expect(cache).to be_nil
     end
 
     it 'should not read through cache if read-through is suspended' do
       User.instance_exec { unicache :id, enabled: true }
       user = Sequel::Unicache.suspend_unicache { User[user_id] }
+      cache = memcache.get "id:#{user.id}"
+      expect(cache).to be_nil
+      user = Sequel::Unicache.suspend_unicache { User.find user_id }
       cache = memcache.get "id:#{user.id}"
       expect(cache).to be_nil
     end
@@ -61,10 +70,10 @@ describe Sequel::Unicache::Write do
     end
 
     it 'should not read from cache when unicache is disabled' do
-      user = User[user_id]
+      User[user_id] # cache data
       Sequel::Unicache.disable
       User[user_id].set(company_name: 'VMware').save
-      user.reload
+      user = User.find user_id
       expect(user.company_name).to eq 'VMware'
     end
 
@@ -73,7 +82,11 @@ describe Sequel::Unicache::Write do
       Sequel::Unicache.disable
       User[user_id].set(company_name: 'VMware').save
       Sequel::Unicache.enable
+      cache = memcache.get "id:#{user.id}"
+      expect(cache).not_to be_nil
       user.reload
+      cache = memcache.get "id:#{user.id}"
+      expect(cache).to be_nil
       expect(user.company_name).to eq 'VMware'
     end
   end

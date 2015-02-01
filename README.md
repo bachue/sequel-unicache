@@ -90,11 +90,10 @@ User[company_name: 'EMC', employee_id: '12345']
 Cache key and expiration:
 
 ```ruby
-User[1].unicache_key
-User[1].unicache_key only: [:id]
-User[1].expire_unicache_key
-User[1].expire_unicache_key except: [:id]
-User.expire_unicache_key 1
+user.unicache_keys
+user.unicache_keys only: [:id]
+user.expire_unicache_keys
+user.expire_unicache_keys except: [:id]
 ```
 
 You can temporarily suspend / unsuspend read-through on runtime:

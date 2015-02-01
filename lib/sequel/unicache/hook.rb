@@ -1,5 +1,4 @@
 require 'sequel/unicache/write'
-require 'sequel/unicache/expire'
 
 module Sequel
   module Unicache
