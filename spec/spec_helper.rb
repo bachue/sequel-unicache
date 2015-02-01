@@ -38,13 +38,23 @@ module Helpers
   end
 
   def initialize_models
-    model = Class.new Sequel::Model
-    model.set_dataset database[:users]
-    Object.send :const_set, :User, model
+    user_class = Class.new Sequel::Model
+    user_class.set_dataset database[:users]
+    user_class.one_to_one :employee, key: :user_id
+    user_class.plugin :association_dependencies, employee: :destroy
+    Object.send :const_set, :User, user_class
+
+    employee_class = Class.new Sequel::Model
+    employee_class.set_dataset database[:employees]
+    employee_class.set_primary_key :user_id
+    employee_class.many_to_one :user
+    employee_class.many_to_one :manager, class: :User
+    Object.send :const_set, :Employee, employee_class
   end
 
   def clear_models
     Object.send :remove_const, :User
+    Object.send :remove_const, :Employee
   end
 
   def database
@@ -55,9 +65,19 @@ module Helpers
                            username VARCHAR NOT NULL, password VARCHAR,
                            company_name VARCHAR NOT NULL, department VARCHAR NOT NULL,
                            employee_id INTEGER NOT NULL, created_at DEFAULT CURRENT_TIMESTAMP);
+        CREATE UNIQUE INDEX uniq_username ON users(username);
+        CREATE UNIQUE INDEX uniq_employee ON users(company_name, department, employee_id);
+        CREATE TABLE employees(user_id INTEGER PRIMARY KEY, manager_id INTEGER, position VARCHAR NOT NULL, location VARCHAR NOT NULL,
+                               created_at DEFAULT CURRENT_TIMESTAMP,
+                               FOREIGN KEY(user_id) REFERENCES users(id),
+                               FOREIGN KEY(manager_id) REFERENCES users(id));
       SQL
-      db[:users].insert username: 'bachue@gmail.com', password: 'bachue',
-                        company_name: 'EMC', department: 'Mozy', employee_id: 12345
+      user_id = db[:users].insert username: 'bachue@gmail.com', password: 'bachue',
+                                  company_name: 'EMC', department: 'Mozy', employee_id: 12345
+      boss_id = db[:users].insert username: 'gimi@emc.com', password: 'gimi',
+                                  company_name: 'EMC', department: 'Mozy', employee_id: 10000
+      db[:employees].insert user_id: user_id, manager_id: boss_id,
+                            position: 'Software Engineer', location: 'Shanghai'
       db
     end
   end

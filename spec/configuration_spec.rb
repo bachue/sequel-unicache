@@ -88,7 +88,9 @@ describe Sequel::Unicache::Configuration do
   it 'can enable & disable any unicache key' do
     User.instance_exec { unicache enabled: false }
     expect(User.unicache_for(:id).enabled).to be false
+    expect(User.unicache_enabled_for?(:id)).to be false
     User.unicache_for(:id).enabled = true
+    expect(User.unicache_for(:id).enabled).to be true
     expect(User.unicache_enabled_for?(:id)).to be true
   end
 
@@ -102,16 +104,13 @@ describe Sequel::Unicache::Configuration do
     expect(User.unicache_for(:id, :department, :employee_id, :company_name, fuzzy: true)).to be User.unicache_for(:department, :employee_id, :company_name)
   end
 
-  it 'should warn if no cache store specified for any unicache key' do
+  it 'should disable unicache key if cache store is not specified' do
     reset_global_configuration
     Sequel::Unicache.configure enabled: true, ttl: 120
-
-    message = 'Must specify cache store for unicache :id of User'
-    expect { User.unicache_for(:id) }.to raise_error
-
-    User.instance_exec { unicache :department, :employee_id, :company_name }
-    message = 'Must specify cache store for unicache [:company_name, :department, :employee_id] of User'
-    expect { User.unicache_for(:company_name, :department, :employee_id) }.to raise_error message
+    expect(User.unicache_enabled_for?(:id)).to be nil
+    cache = memcache
+    User.instance_exec { unicache :id, cache: cache }
+    expect(User.unicache_enabled_for?(:id)).to be true
   end
 
   it 'should always give default value for serialize, deserialize & key' do

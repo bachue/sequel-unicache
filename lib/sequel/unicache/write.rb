@@ -41,6 +41,8 @@ module Sequel
           end
         end
 
+      private
+
         def write_for model, config, results
           key = cache_key model, config
           cache = results[config.serialize]
@@ -75,8 +77,6 @@ module Sequel
           values = select_keys model, config.unicache_keys
           config.key.(values, config)
         end
-
-      private
 
         def restore_previous model
           previous_changes = model.instance_variable_get :@_unicache_previous_values

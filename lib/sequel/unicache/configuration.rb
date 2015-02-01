@@ -51,12 +51,16 @@ module Sequel
             key = Utils.normalize_key_for_unicache key
             config = @unicache_key_configurations[key]
           end
-          raise "Must specify cache store for unicache #{key.inspect} of #{name}" if config && !config.cache
           config
         end
 
-        def unicache_enabled_for? *key
-          key.first.is_a?(Configuration) ? key.first.enabled : unicache_for(*key).enabled
+        def unicache_enabled_for? *key # config.enabled must be true, config.cache must be existed
+          if key.first.is_a?(Configuration)
+            config = key.first
+          else
+            config = unicache_for(*key)
+          end
+          config.cache && config.enabled if config
         end
 
         class Utils
@@ -90,7 +94,7 @@ module Sequel
                                     else
                                       keys.include? cache_key
                                     end
-                            match & config.enabled
+                            match & config.cache && config.enabled
                           end
               result
             end
