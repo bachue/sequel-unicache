@@ -77,8 +77,9 @@ describe Sequel::Unicache::Finder do
       end
 
       it 'should not read-through from joined dataset' do
-        user = User[user_id] # cache primary key
-        expect(User.join(:employees)[1].values).not_to eq user.values
+        user = User[1] # cache primary key
+        ds = User.inner_join :users, {id: :manager_id}, table_alias: 'managers'
+        expect(ds[1].values).not_to eq user.values
       end
     end
   end
