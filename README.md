@@ -84,16 +84,13 @@ User.find username: 'bachue@gmail.com'
 
 User[company_name: 'EMC', employee_id: '12345']
 User.find company_name: 'EMC', employee_id: '12345'
-# TODO: article.user
+article.user
 ```
 
-Cache key and expiration:
+Cache expiration methods:
 
 ```ruby
-user.unicache_keys
-user.unicache_keys only: [:id]
-user.expire_unicache_keys
-user.expire_unicache_keys except: [:id]
+user.expire_unicache
 ```
 
 You can temporarily suspend / unsuspend read-through on runtime:

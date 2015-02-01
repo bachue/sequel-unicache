@@ -9,6 +9,10 @@ module Sequel
           Write.expire model if Unicache.enabled?
           model
         end
+
+        def expire_unicache
+          Write.expire self, force: true
+        end
       end
     end
   end

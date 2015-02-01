@@ -27,12 +27,12 @@ module Sequel
           expire model
         end
 
-        def expire model
+        def expire model, force: false
           configs = all_configs_of model
           reload model unless check_completeness? model, configs
           restore_previous model do # restore to previous values temporarily
             # Unicache must be enabled then do expiration
-            configs.each { |config| expire_for model, config if enabled? model, config }
+            configs.each { |config| expire_for model, config if force || enabled?(model, config) }
           end
         rescue => error
           Unicache::Logger.fatal model, "[Unicache] Exception happen when expire cache for a model. Reason: #{error.message}. Model: #{model.inspect}"
@@ -82,7 +82,7 @@ module Sequel
         end
 
         def all_configs_of model
-          model.class.send(:unicache_configurations).values
+          model.class.unicache_configurations.values
         end
 
         def cache_key model, config
@@ -98,7 +98,7 @@ module Sequel
           end
           yield
         ensure
-          model.set_all origin
+          model.set_all origin if origin
         end
 
         def select_keys model, keys

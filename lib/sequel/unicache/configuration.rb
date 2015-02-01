@@ -28,23 +28,15 @@ module Sequel
           end
         end
 
-        def unicache_class_configuration
+        def initialize_unicache
           Utils.initialize_unicache_for_class self unless @unicache_class_configuration # Initialize class first
           Utils.initialize_unicache_for_key self unless @unicache_key_configurations # Initialize key
-          @unicache_class_configuration
-        end
-
-        def unicache_configurations
-          Utils.initialize_unicache_for_class self unless @unicache_class_configuration # Initialize class first
-          Utils.initialize_unicache_for_key self unless @unicache_key_configurations # Initialize key
-          @unicache_key_configurations
         end
 
       public
         # Read configuration for specified model
         def unicache_for *key, fuzzy: false
-          Utils.initialize_unicache_for_class self unless @unicache_class_configuration # Initialize class first
-          Utils.initialize_unicache_for_key self unless @unicache_key_configurations # Initialize key
+          initialize_unicache
           if fuzzy
             config = Utils.fuzzy_search_for key, @unicache_key_configurations
           else
@@ -61,6 +53,16 @@ module Sequel
             config = unicache_for(*key)
           end
           config.cache && config.enabled if config
+        end
+
+        def unicache_class_configuration
+          initialize_unicache
+          @unicache_class_configuration
+        end
+
+        def unicache_configurations
+          initialize_unicache
+          @unicache_key_configurations
         end
 
         class Utils

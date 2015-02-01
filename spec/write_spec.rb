@@ -236,4 +236,42 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
   end
+
+  context 'expire by #expire_unicache' do
+    let(:user) { User[user_id] }
+
+    before :each do
+      User.instance_exec do
+        unicache :username
+        unicache :company_name, :department, :employee_id
+      end
+    end
+
+    it 'should expire all keys' do
+      cache = memcache.get "User:id:#{user.id}"
+      expect(cache).not_to be_nil
+      cache = memcache.get "User:username:bachue@gmail.com"
+      expect(cache).not_to be_nil
+      cache = memcache.get "User:company_name:EMC:department:Mozy:employee_id:12345"
+      expect(cache).not_to be_nil
+      user.expire_unicache
+      cache = memcache.get "User:id:#{user.id}"
+      expect(cache).to be_nil
+      cache = memcache.get "User:username:bachue@gmail.com"
+      expect(cache).to be_nil
+      cache = memcache.get "User:company_name:EMC:department:Mozy:employee_id:12345"
+      expect(cache).to be_nil
+    end
+
+    it 'should expire all keys even unicache is disabled' do
+      Sequel::Unicache.disable
+      user.expire_unicache
+      cache = memcache.get "User:id:#{user.id}"
+      expect(cache).to be_nil
+      cache = memcache.get "User:username:bachue@gmail.com"
+      expect(cache).to be_nil
+      cache = memcache.get "User:company_name:EMC:department:Mozy:employee_id:12345"
+      expect(cache).to be_nil
+    end
+  end
 end
