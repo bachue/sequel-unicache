@@ -136,7 +136,8 @@ If you reload a model, cache will also be updated.
 
 * If you want to configure both class-level and key-level for a model, configure class-level first.
 
-* If someone update database by SQL directly (even Sequel APIs like `User.insert`, `user.delete` or `User.db.[]` won't be supported) or by another project without unicache, then cache in memcache won't be expired automatically.
+* Unicache use hook to expire cache.
+  If someone update database by SQL directly (even Sequel APIs like `User.insert`, `user.delete` or `User.db.[]` won't be supported) or by another project without unicache, then cache in memcache won't be expired automatically.
   You must expire cache manually or by another mechanism.
 
 ## Contributing

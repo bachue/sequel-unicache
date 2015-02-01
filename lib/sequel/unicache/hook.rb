@@ -11,24 +11,43 @@ module Sequel
 
       module InstanceMethods
         def after_commit
-          Write.expire self if Unicache.enabled?
-          @_unicache_previous_values = nil
+          if Unicache.enabled?
+            Write.expire self
+            @_unicache_previous_values = nil
+          end
           super
         end
 
         def after_rollback
-          @_unicache_previous_values = nil
+          @_unicache_previous_values = nil if Unicache.enabled?
           super
         end
 
         def after_destroy_commit
-          Write.expire self if Unicache.enabled?
+          if Unicache.enabled?
+            Write.expire self
+            @_unicache_previous_values = nil
+          end
+          super
+        end
+
+        def after_destroy_rollback
+          @_unicache_previous_values = nil if Unicache.enabled?
+          super
+        end
+
+        def before_destroy
+          if Unicache.enabled? && !Write.check_completeness?(self) && primary_key
+            @_unicache_previous_values = self.class.with_pk(pk).values
+          end
           super
         end
 
         def before_update
-          # Store all previous values, to be expired
-          @_unicache_previous_values = initial_values.merge(@_unicache_previous_values || {})
+          if Unicache.enabled?
+            # Store all previous values, to be expired
+            @_unicache_previous_values = initial_values.merge(@_unicache_previous_values || {})
+          end
           super
         end
       end

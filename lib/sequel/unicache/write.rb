@@ -29,7 +29,7 @@ module Sequel
 
         def expire model
           configs = all_configs_of model
-          model.reload unless check_completeness? model, configs
+          reload model unless check_completeness? model, configs
           restore_previous model do # restore to previous values temporarily
             # Unicache must be enabled then do expiration
             configs.each { |config| expire_for model, config if enabled? model, config }
@@ -41,7 +41,19 @@ module Sequel
           end
         end
 
+        def check_completeness? model, all_configs = all_configs_of(model)
+          all_unicache_keys = all_configs.map {|config| config.unicache_keys }.flatten.uniq
+          model_keys = model.keys
+          all_unicache_keys.all? {|key| model_keys.include? key }
+        end
+
       private
+
+        def reload model
+          model.reload
+        rescue Sequel::Error => err
+          raise unless err.message == 'Record not found'
+        end
 
         def write_for model, config, results
           key = cache_key model, config
@@ -91,12 +103,6 @@ module Sequel
 
         def select_keys model, keys
           Array(keys).inject({}) { |hash, attr| hash.merge attr => model[attr] }
-        end
-
-        def check_completeness? model, all_configs
-          all_unicache_keys = all_configs.map {|config| config.unicache_keys }.flatten.uniq
-          model_keys = model.keys
-          all_unicache_keys.all? {|key| model_keys.include? key }
         end
 
         def enabled? model, config

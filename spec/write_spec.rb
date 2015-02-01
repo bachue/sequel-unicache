@@ -196,6 +196,14 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
     end
 
+    it 'should expire cache' do
+      User.instance_exec { unicache :username }
+      user = User.select(:id).first
+      user.destroy
+      cache = memcache.get "User:username:#{user.username}"
+      expect(cache).to be_nil
+    end
+
     it 'should not expire cache until transaction is committed' do
       User.db.transaction auto_savepoint: true do
         user.destroy
