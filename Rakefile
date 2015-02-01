@@ -9,3 +9,5 @@ task :test do
        '-I', root, '-r', spec_helper, '-b', '-c', specs
 end
 
+task default: [:test]
+

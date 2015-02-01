@@ -76,6 +76,11 @@ module Sequel
           @unicache_key_configurations
         end
 
+        def unicache_version
+          initialize_unicache
+          @unicache_model_configuration.version
+        end
+
         class Utils
           class << self
             def initialize_unicache_for_class model_class
@@ -92,7 +97,9 @@ module Sequel
               model_class.instance_exec do
                 @unicache_key_configurations = {}
                 if primary_key
-                  pk_config = @unicache_model_configuration.to_h.merge unicache_keys: model_class.primary_key
+                  base_config = @unicache_model_configuration.to_h
+                  pk_config = base_config.merge unicache_keys: model_class.primary_key
+                  pk_config.delete :version
                   @unicache_key_configurations[primary_key] = Configuration.new pk_config
                 end
               end

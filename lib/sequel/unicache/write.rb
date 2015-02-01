@@ -59,7 +59,7 @@ module Sequel
           key = cache_key model, config
           cache = results[config.serialize]
           unless cache # if serialize was run before, use the cache
-            cache = config.serialize.(model.values, config)
+            cache = config.serialize.({values: model.values, version: model.class.unicache_version}, config)
             results[config.serialize] = cache
           end
           config.cache.set key, cache, config.ttl

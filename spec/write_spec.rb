@@ -10,7 +10,7 @@ describe Sequel::Unicache::Write do
       user = User[user_id]
       cache = memcache.get "User:id:#{user.id}"
       expect(cache).not_to be_nil
-      expect(Marshal.load(cache)).to eq user.values
+      expect(Marshal.load(cache)).to eq values: user.values, version: 1
     end
 
     it 'should serialize model into specified format' do
@@ -18,7 +18,7 @@ describe Sequel::Unicache::Write do
       user = User[user_id]
       cache = memcache.get "User:id:#{user.id}"
       expect(cache).not_to be_nil
-      expect(YAML.load(cache)).to eq user.values
+      expect(YAML.load(cache)).to eq values: user.values, version: 1
     end
 
     it 'should not read through cache if unicache is not enabled for this key' do
@@ -89,6 +89,18 @@ describe Sequel::Unicache::Write do
       expect(cache).to be_nil
       expect(user.company_name).to eq 'VMware'
     end
+
+    it 'should update cache when version doesn\'t match' do
+      user = User[user_id]
+      Sequel::Unicache.disable
+      User[user_id].set(company_name: 'VMware').save
+      User.unicache_model_configuration.version = 3
+      Sequel::Unicache.enable
+      expect(User[user_id].company_name).to eq 'VMware'
+      cache = memcache.get "User:id:#{user.id}"
+      expect(cache).not_to be_nil
+      expect(Marshal.load(cache)[:values][:company_name]).to eq 'VMware'
+    end
   end
 
   context 'expire when update' do
@@ -103,7 +115,7 @@ describe Sequel::Unicache::Write do
       user = User[user_id]
       cache = memcache.get "User:id:#{user.id}"
       expect(cache).not_to be_nil
-      expect(Marshal.load(cache)).to eq user.values
+      expect(Marshal.load(cache)).to eq values: user.values, version: 1
     end
 
     it 'should not expire cache until transaction is committed' do
@@ -123,7 +135,7 @@ describe Sequel::Unicache::Write do
       end
       cache = memcache.get "User:id:#{user.id}"
       expect(cache).not_to be_nil
-      expect(Marshal.load(cache)).to eq origin
+      expect(Marshal.load(cache)).to eq values: origin, version: 1
     end
 
     it 'should not expire cache even if unicache is not enabled for that key' do
@@ -132,7 +144,7 @@ describe Sequel::Unicache::Write do
       user.set(company_name: 'VMware').save
       cache = memcache.get "User:id:#{user.id}"
       expect(cache).not_to be_nil
-      expect(Marshal.load(cache)).to eq origin
+      expect(Marshal.load(cache)).to eq values: origin, version: 1
     end
 
     it 'should not expire cache even if unicache is not enabled' do
@@ -141,7 +153,7 @@ describe Sequel::Unicache::Write do
       user.set(company_name: 'VMware').save
       cache = memcache.get "User:id:#{user.id}"
       expect(cache).not_to be_nil
-      expect(Marshal.load(cache)).to eq origin
+      expect(Marshal.load(cache)).to eq values: origin, version: 1
     end
 
     it 'should still expire cache even if read-through is suspended' do
@@ -175,13 +187,13 @@ describe Sequel::Unicache::Write do
 
     it 'should still get currect value during a transaction' do
       user = User[user_id]
-      expect(Sequel::Unicache.unicache_suspended?).to be false
+      expect(Sequel::Unicache.unicache_suspended?).not_to be true
       User.db.transaction auto_savepoint: true do
         expect(Sequel::Unicache.unicache_suspended?).to be true
         user.set(username: 'bachue@emc.com').save
         expect(User[user_id].username).to eq 'bachue@emc.com'
       end
-      expect(Sequel::Unicache.unicache_suspended?).to be false
+      expect(Sequel::Unicache.unicache_suspended?).not_to be true
     end
   end
 
@@ -219,7 +231,7 @@ describe Sequel::Unicache::Write do
       user.destroy
       cache = memcache.get "User:id:#{user.id}"
       expect(cache).not_to be_nil
-      expect(Marshal.load(cache)).to eq user.values
+      expect(Marshal.load(cache)).to eq values: user.values, version: 1
     end
 
     it 'should not expire cache even if unicache is not enabled' do
@@ -227,7 +239,7 @@ describe Sequel::Unicache::Write do
       user.destroy
       cache = memcache.get "User:id:#{user.id}"
       expect(cache).not_to be_nil
-      expect(Marshal.load(cache)).to eq user.values
+      expect(Marshal.load(cache)).to eq values: user.values, version: 1
     end
 
     it 'should still expire cache even if read-through is suspended' do

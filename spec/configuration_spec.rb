@@ -87,15 +87,16 @@ describe Sequel::Unicache::Configuration do
 
   it 'can set cache version for each model' do
     User.instance_exec { unicache version: 3 }
-    expect(User.unicache_model_configuration.version).to be 3
+    expect(User.unicache_version).to be 3
   end
 
-  it 'cannot get cache version from any key' do
+  it 'cannot get or set cache version for any key' do
     expect(User.unicache_for(:id).respond_to?(:version)).to be false
+    expect(User.unicache_for(:id).respond_to?(:version=)).to be false
   end
 
   it 'Model\'s default version is always 1' do
-    expect(User.unicache_model_configuration.version).to be 1
+    expect(User.unicache_version).to be 1
   end
 
   it 'can enable & disable any unicache key' do

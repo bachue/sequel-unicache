@@ -38,13 +38,14 @@ module Sequel
         def find_with_cache hash, config
           cache = config.cache.get config.key.(hash, config)
           if cache
-            values = config.deserialize.(cache, config)
-            dataset.row_proc.call values
-          else
-            model = yield
-            Write.write model if model
-            model
+            hash = config.deserialize.(cache, config)
+            if hash[:version] == config.model_class.unicache_version
+              return dataset.row_proc.call hash[:values]
+            end
           end
+          model = yield
+          Write.write model if model
+          model
         end
       end
     end

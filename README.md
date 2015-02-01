@@ -62,6 +62,7 @@ class User < Sequel::Model
            deserialize: {|cache, opts| MessagePack.unpack(cache) }, # Deserialization method, will overwrite the global configuration
            key: {|hash, opts| "users/#{hash[:id]}" },               # Cache key generation method, will overwrite the global configuration
            logger: Logger.new(STDERR),                              # Object for log, will overwrite the global configuration
+           version: 3                                               # Cache version, cache will be used only when version matches
 
   # by default primary key is always unique cache key, all settings will just follow global configuration and class configuration
   # key level configuration for username
