@@ -8,7 +8,7 @@ module Sequel
           # If model is not completed, don't cache it
           if (model.columns - model.keys).empty?
             cache = {}
-            all_configs_of(model).each do |config|
+            unicache_configurations(model).each_value do |config|
               continue unless enabled? model, config # if unicached is disabled, do nothing
               # write cache requires if-condition returns true
               # otherwise will fallback to expire
@@ -28,11 +28,11 @@ module Sequel
         end
 
         def expire model, force: false
-          configs = all_configs_of model
+          configs = unicache_configurations model
           reload model unless check_completeness? model, configs
           restore_previous model do # restore to previous values temporarily
             # Unicache must be enabled then do expiration
-            configs.each { |config| expire_for model, config if force || enabled?(model, config) }
+            configs.each_value { |config| expire_for model, config if force || enabled?(model, config) }
           end
         rescue => error
           Unicache::Logger.fatal model, "[Unicache] Exception happen when expire cache for a model. Reason: #{error.message}. Model: #{model.inspect}"
@@ -41,8 +41,8 @@ module Sequel
           end
         end
 
-        def check_completeness? model, all_configs = all_configs_of(model)
-          all_unicache_keys = all_configs.map {|config| config.unicache_keys }.flatten.uniq
+        def check_completeness? model, configs = unicache_configurations(model)
+          all_unicache_keys = configs.keys.flatten.uniq
           model_keys = model.keys
           all_unicache_keys.all? {|key| model_keys.include? key }
         end
@@ -81,8 +81,8 @@ module Sequel
           end
         end
 
-        def all_configs_of model
-          model.class.unicache_configurations.values
+        def unicache_configurations model
+          model.class.unicache_configurations
         end
 
         def cache_key model, config
