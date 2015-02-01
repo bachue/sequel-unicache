@@ -10,7 +10,7 @@ describe Sequel::Unicache::Logger do
       User.instance_exec { unicache :id, serialize: ->(values, _) { raise 'test' } }
       expect(logger).to receive(:error).at_least(:once)
       user = User[user_id]
-      cache = memcache.get "id:#{user.id}"
+      cache = memcache.get "User:id:#{user.id}"
       expect(cache).to be_nil
     end
   end
@@ -18,7 +18,7 @@ describe Sequel::Unicache::Logger do
   context 'expire' do
     it 'should log down, ignore exception when failed to expire during model destroy' do
       user = User[user_id]
-      cache = memcache.get "id:#{user.id}"
+      cache = memcache.get "User:id:#{user.id}"
       expect(cache).not_to be_nil
       User.instance_exec { unicache :id, key: ->(values, _) { raise 'test' } }
       expect(logger).to receive(:fatal).at_least(:once)

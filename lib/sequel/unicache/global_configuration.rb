@@ -23,9 +23,11 @@ module Sequel
       def default_config
         { serialize: ->(values, _) { Marshal.dump values },
           deserialize: ->(cache, _) { Marshal.load cache },
-          key: ->(hash, _) {
-            hash.keys.sort.map {|key| [key, hash[key]] }.flatten.
-                 map {|str| str.to_s.gsub(':', '\:') }.join(':')
+          key: ->(hash, opts) {
+            cls  = opts.model_class.name
+            keys = hash.keys.sort.map {|key| [key, hash[key]] }.flatten.
+                                  map {|str| str.to_s.gsub(':', '\:') }.join(':')
+            "#{cls}:#{keys}"
           },
           enabled: true }
       end
