@@ -149,4 +149,25 @@ describe Sequel::Unicache::Finder do
       end
     end
   end
+
+  context 'association' do
+    let!(:user) { User.first }
+
+    it 'should cache associated object' do
+      manager = user.manager
+      cache = memcache.get "User:id:#{manager.id}"
+      expect(cache).not_to be_nil
+      expect(Marshal.load(cache)).to eq manager.values
+    end
+
+    it 'should get model from cache' do
+      expect(user.manager.manager).to be_nil
+      values = { id: 10, username: 'tim@emc.com', password: 'abcdef', company_name: 'EMC', department: 'DPC:Mozy', employee_id: 100 }
+      memcache.set "User:id:10", Marshal.dump(values)
+      user.manager.set manager_id: 10
+      manager = user.manager.manager
+      expect(manager).not_to be_nil
+      expect(manager.values).to eq values
+    end
+  end
 end
